@@ -8,6 +8,12 @@ const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
 const REST_URL = `${SUPABASE_URL}/rest/v1`;
 
+// This app only reads + writes calls/leads/sms for these brands. The DB is
+// shared with the main Command Center; everything else is filtered out at
+// the query layer so the dashboard only ever sees O1dMatch + Sevyn rows.
+const APP_BRANDS = ['O1dMatch', 'Sevyn'];
+const BRAND_FILTER = `brand=in.(${APP_BRANDS.map(encodeURIComponent).join(',')})`;
+
 /**
  * Make authenticated request to Supabase
  */
@@ -129,12 +135,18 @@ async function saveSMS(smsData) {
  */
 async function getCalls(options = {}) {
   const { brand, limit = 50, followUpOnly = false } = options;
-  
+
   let query = '?order=timestamp.desc';
   if (limit) query += `&limit=${limit}`;
-  if (brand) query += `&brand=eq.${brand}`;
+  // Always scope to this app's brands; a caller-supplied brand narrows further
+  // but can't escape the allowlist.
+  if (brand && APP_BRANDS.includes(brand)) {
+    query += `&brand=eq.${encodeURIComponent(brand)}`;
+  } else {
+    query += `&${BRAND_FILTER}`;
+  }
   if (followUpOnly) query += `&follow_up_needed=eq.true`;
-  
+
   const calls = await supabaseRequest('calls', 'GET', null, query);
   return calls || [];
 }
@@ -144,12 +156,16 @@ async function getCalls(options = {}) {
  */
 async function getLeads(options = {}) {
   const { brand, status, limit = 50 } = options;
-  
+
   let query = '?order=created_at.desc';
   if (limit) query += `&limit=${limit}`;
-  if (brand) query += `&brand=eq.${brand}`;
+  if (brand && APP_BRANDS.includes(brand)) {
+    query += `&brand=eq.${encodeURIComponent(brand)}`;
+  } else {
+    query += `&${BRAND_FILTER}`;
+  }
   if (status) query += `&status=eq.${status}`;
-  
+
   const leads = await supabaseRequest('leads', 'GET', null, query);
   return leads || [];
 }
@@ -201,11 +217,11 @@ async function incrementSMSCount() {
  */
 async function getSMS(options = {}) {
   const { limit = 50, direction } = options;
-  
-  let query = '?order=created_at.desc';
+
+  let query = `?order=created_at.desc&${BRAND_FILTER}`;
   if (limit) query += `&limit=${limit}`;
   if (direction) query += `&direction=eq.${direction}`;
-  
+
   const sms = await supabaseRequest('sms_messages', 'GET', null, query);
   return sms || [];
 }
@@ -214,7 +230,7 @@ async function getSMS(options = {}) {
  * Get call volume chart data (last 7 or 30 days)
  */
 async function getChartData(days = 7) {
-  const calls = await supabaseRequest('calls', 'GET', null, `?order=timestamp.desc&limit=500`);
+  const calls = await supabaseRequest('calls', 'GET', null, `?order=timestamp.desc&limit=500&${BRAND_FILTER}`);
   
   const now = new Date();
   const dayLabels = [];
@@ -286,15 +302,23 @@ async function getDashboardData() {
   const todaySMS = (sms || []).filter(s => s.created_at && s.created_at.startsWith(today));
   const todayLeads = (leads || []).filter(l => l.created_at && l.created_at.startsWith(today));
   
+  // Always derive totals from the (already brand-filtered) lists rather
+  // than the global stats table, since stats.total_calls aggregates
+  // across all 6 brands in the shared DB.
+  const filteredCallsByBrand = {};
+  for (const b of APP_BRANDS) {
+    filteredCallsByBrand[b] = todayCalls.filter(c => c.brand === b).length;
+  }
+
   return {
     calls,
     leads,
     sms,
     stats: {
-      total_calls: stats.total_calls || todayCalls.length,
-      total_sms: stats.total_sms || todaySMS.length,
-      total_leads: stats.total_leads || todayLeads.length,
-      calls_by_brand: stats.calls_by_brand || {}
+      total_calls: todayCalls.length,
+      total_sms: todaySMS.length,
+      total_leads: todayLeads.length,
+      calls_by_brand: filteredCallsByBrand
     },
     chartData: chartResult.data,
     chartLabels: chartResult.labels,
