@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Call History — O1dMatch Calls</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            ink: {
+              900: '#0B1C3A',
+              800: '#142A4F',
+              700: '#1A3358',
+              600: '#234070',
+              500: '#222933'
+            },
+            brand: {
+              500: '#C9A96E',
+              400: '#D9BC85',
+              300: '#E5CFA0'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['"SF Mono"', 'ui-monospace', 'JetBrains Mono', 'Menlo', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #222933; border-radius: 3px; }
+    .transcript-box { max-height: 320px; overflow-y: auto; }
+    /* Soft border tokens */
+    .border-soft { border-color: rgba(255,255,255,0.06); }
+    .border-soft-hi { border-color: rgba(255,255,255,0.10); }
+  </style>
+</head>
+<body class="bg-ink-900 text-gray-100 min-h-screen">
+
+  <!-- Top bar -->
+  <header class="border-b border-soft">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3 sm:gap-8 min-w-0">
+        <a href="/" class="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 bg-brand-500 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20">
+            <span class="text-[#0B1C3A] font-extrabold text-xs sm:text-sm tracking-tight">O1</span>
+          </div>
+          <span class="font-bold text-sm sm:text-base">O1dMatch Calls</span>
+        </a>
+        <nav class="flex items-center gap-0.5 sm:gap-1 text-xs sm:text-sm">
+          <a href="/" class="px-2 sm:px-3 py-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-ink-700 transition whitespace-nowrap">
+            <i class="fas fa-gauge text-xs sm:mr-1.5"></i><span class="hidden sm:inline">Dashboard</span>
+          </a>
+          <a href="/calls" class="px-2 sm:px-3 py-1.5 rounded-lg text-white bg-ink-700 whitespace-nowrap">
+            <i class="fas fa-clock-rotate-left text-xs sm:mr-1.5"></i><span class="hidden sm:inline">History</span>
+          </a>
+        </nav>
+      </div>
+      <a href="/auth/logout" class="text-xs sm:text-sm text-gray-400 hover:text-white transition shrink-0">
+        <i class="fas fa-arrow-right-from-bracket text-xs"></i><span class="hidden sm:inline ml-1.5">Sign out</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+
+    <!-- Page heading -->
+    <div class="flex items-start justify-between mb-6 sm:mb-8 flex-wrap gap-3">
+      <div class="min-w-0">
+        <div class="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">Call history</h1>
+          <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-brand-500/15 text-brand-400 border border-brand-500/25">live</span>
+        </div>
+        <p class="text-gray-500 text-xs sm:text-sm">
+          <span id="total-emails-line"><span id="total-count" class="font-mono">0</span> calls</span>
+          <span class="mx-2">|</span>
+          <span id="page-meta">Loading…</span>
+        </p>
+      </div>
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <button onclick="exportFollowUps()" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-ink-700 hover:bg-ink-600 border border-soft text-xs sm:text-sm font-medium transition">
+          <i class="fas fa-bell text-amber-400 text-xs"></i><span class="hidden sm:inline">Needs follow-up</span><span class="sm:hidden">Follow-up</span>
+        </button>
+        <button onclick="exportAll()" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-[#0B1C3A] text-xs sm:text-sm font-semibold transition">
+          <i class="fas fa-download text-xs"></i>Export
+        </button>
+      </div>
+    </div>
+
+    <!-- Stat tiles -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+
+      <div class="bg-ink-800 border border-soft rounded-2xl p-4 sm:p-5">
+        <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">
+          <i class="fas fa-circle-check text-brand-400"></i>Completed
+        </div>
+        <div id="stat-completed" class="text-3xl sm:text-4xl font-bold font-mono text-brand-400">0</div>
+      </div>
+
+      <div class="bg-ink-800 border border-soft rounded-2xl p-4 sm:p-5">
+        <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">
+          <i class="fas fa-circle-exclamation text-rose-400"></i>Failed
+        </div>
+        <div id="stat-failed" class="text-3xl sm:text-4xl font-bold font-mono text-rose-400">0</div>
+      </div>
+
+      <div class="bg-ink-800 border border-soft rounded-2xl p-4 sm:p-5">
+        <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">
+          <i class="fas fa-triangle-exclamation text-amber-400"></i>Needs follow-up
+        </div>
+        <div id="followup-count" class="text-3xl sm:text-4xl font-bold font-mono text-amber-400">0</div>
+      </div>
+
+      <div class="bg-ink-800 border border-soft rounded-2xl p-4 sm:p-5">
+        <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">
+          <i class="fas fa-calendar-day text-gray-400"></i>Today
+        </div>
+        <div id="today-count" class="text-3xl sm:text-4xl font-bold font-mono text-white">0</div>
+      </div>
+    </div>
+
+    <!-- Search + filter row -->
+    <div class="grid grid-cols-1 sm:flex sm:items-center gap-2 sm:gap-3 mb-4 sm:flex-wrap">
+      <div class="relative sm:flex-1 sm:min-w-[260px]">
+        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm"></i>
+        <input type="text" id="search" placeholder="Search by name, phone, or topic…" onkeyup="filterCalls()"
+          class="w-full bg-ink-800 border border-soft rounded-xl pl-11 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/15 transition" />
+      </div>
+      <div class="grid grid-cols-2 gap-2 sm:contents">
+        <select id="brand-filter" onchange="filterCalls()"
+          class="bg-ink-800 border border-soft rounded-xl px-3 sm:px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500/60 transition">
+          <option value="">All</option>
+          <option value="O1dMatch">O1dMatch</option>
+          <option value="Sevyn">Sevyn Sales Training</option>
+        </select>
+        <select id="status-filter" onchange="filterCalls()"
+          class="bg-ink-800 border border-soft rounded-xl px-3 sm:px-4 py-2.5 text-sm focus:outline-none focus:border-brand-500/60 transition">
+          <option value="">All statuses</option>
+          <option value="follow_up">Needs follow-up</option>
+          <option value="complete">Completed</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Filter pills -->
+    <div class="flex items-center gap-1 mb-6 flex-wrap" id="filter-pills">
+      <button onclick="setQuickFilter('all')" data-pill="all" class="pill pill-active">All <span class="pill-num" id="pill-all">0</span></button>
+      <button onclick="setQuickFilter('inbound')" data-pill="inbound" class="pill">Inbound <span class="pill-num" id="pill-inbound">0</span></button>
+      <button onclick="setQuickFilter('outbound')" data-pill="outbound" class="pill">Outbound <span class="pill-num" id="pill-outbound">0</span></button>
+      <button onclick="setQuickFilter('followup')" data-pill="followup" class="pill">Follow-up <span class="pill-num" id="pill-followup">0</span></button>
+      <button onclick="setQuickFilter('today')" data-pill="today" class="pill">Today <span class="pill-num" id="pill-today">0</span></button>
+    </div>
+
+    <style>
+      .pill {
+        padding: 0.375rem 0.875rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: #9ba4b1;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: all 0.18s ease;
+      }
+      .pill:hover { color: #e7ecf0; }
+      .pill-active {
+        background: #234070;
+        color: #e7ecf0;
+        border-color: rgba(255,255,255,0.06);
+      }
+      .pill-num {
+        color: #5f6873;
+        font-family: 'SF Mono', ui-monospace, monospace;
+        font-size: 0.75rem;
+        margin-left: 0.25rem;
+      }
+      .pill-active .pill-num { color: #9ba4b1; }
+    </style>
+
+    <!-- Calls table -->
+    <div class="bg-ink-800 border border-soft rounded-2xl overflow-hidden">
+      <div class="hidden md:grid grid-cols-[40px_minmax(0,1fr)_120px_140px_100px_140px] gap-4 px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-soft">
+        <div>#</div>
+        <div>Caller</div>
+        <div>Brand</div>
+        <div>When</div>
+        <div>Duration</div>
+        <div class="text-right">Status</div>
+      </div>
+      <div id="calls-container">
+        <div class="px-5 py-12 text-center text-gray-500">
+          <i class="fas fa-spinner fa-spin text-2xl mb-3"></i>
+          <p class="text-sm">Loading calls…</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Load More -->
+    <div id="load-more-container" class="text-center mt-6 hidden">
+      <button onclick="loadMore()" class="px-5 py-2.5 bg-ink-800 hover:bg-ink-700 border border-soft rounded-xl text-sm text-gray-400 hover:text-white transition">
+        Load more
+      </button>
+    </div>
+  </main>
+
+  <!-- Call Detail Drawer -->
+  <div id="drawer" class="fixed inset-y-0 right-0 w-full md:w-[640px] bg-ink-800 border-l border-soft-hi transform translate-x-full transition-transform duration-300 z-50 overflow-y-auto scrollbar-thin">
+    <div class="sticky top-0 bg-ink-800/95 backdrop-blur-sm border-b border-soft px-6 py-4 flex items-center justify-between z-10">
+      <h2 class="font-semibold text-base">Call details</h2>
+      <button onclick="closeDrawer()" class="w-8 h-8 rounded-lg hover:bg-ink-700 flex items-center justify-center text-gray-400 hover:text-white transition">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div id="drawer-content" class="p-6"></div>
+  </div>
+  <div id="drawer-overlay" onclick="closeDrawer()" class="fixed inset-0 bg-black/60 z-40 hidden backdrop-blur-sm"></div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-6 right-6 space-y-3 z-50"></div>
+
+  <script>
+    let allCalls = [];
+    let filteredCalls = [];
+    let displayLimit = 25;
+    let quickFilter = 'all';
+
+    document.addEventListener('DOMContentLoaded', () => { loadCalls(); });
+
+    async function loadCalls() {
+      try {
+        const response = await fetch('/api/calls?limit=500');
+        const result = await response.json();
+        allCalls = result.calls || result || [];
+        filteredCalls = [...allCalls];
+        updateStats();
+        renderCalls();
+      } catch (error) {
+        console.error('Failed to load calls:', error);
+        document.getElementById('calls-container').innerHTML = `
+          <div class="px-5 py-12 text-center text-rose-400">
+            <i class="fas fa-circle-exclamation text-2xl mb-3"></i>
+            <p class="text-sm">Failed to load calls</p>
+          </div>
+        `;
+      }
+    }
+
+    function updateStats() {
+      const today = new Date().toISOString().split('T')[0];
+      const completed = allCalls.filter(c => c.outcome && /completed|customer-ended-call|assistant-ended-call/i.test(c.outcome)).length;
+      const failed = allCalls.filter(c => c.outcome && /error|failed|did-not-answer|busy|no-answer/i.test(c.outcome)).length;
+      const followup = allCalls.filter(c => c.follow_up_needed).length;
+      const todayCount = allCalls.filter(c => c.timestamp && c.timestamp.startsWith(today)).length;
+      const inbound = allCalls.filter(c => c.direction === 'inbound').length;
+      const outbound = allCalls.filter(c => c.direction === 'outbound').length;
+
+      document.getElementById('total-count').textContent = allCalls.length;
+      document.getElementById('stat-completed').textContent = completed;
+      document.getElementById('stat-failed').textContent = failed;
+      document.getElementById('followup-count').textContent = followup;
+      document.getElementById('today-count').textContent = todayCount;
+
+      document.getElementById('pill-all').textContent = allCalls.length;
+      document.getElementById('pill-inbound').textContent = inbound;
+      document.getElementById('pill-outbound').textContent = outbound;
+      document.getElementById('pill-followup').textContent = followup;
+      document.getElementById('pill-today').textContent = todayCount;
+
+      const latest = allCalls[0]?.timestamp ? new Date(allCalls[0].timestamp) : null;
+      document.getElementById('page-meta').textContent = latest
+        ? 'Most recent: ' + latest.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+        : 'No calls yet';
+    }
+
+    function setQuickFilter(filter) {
+      quickFilter = filter;
+      document.querySelectorAll('[data-pill]').forEach(b => b.classList.toggle('pill-active', b.dataset.pill === filter));
+      displayLimit = 25;
+      filterCalls();
+    }
+
+    function filterCalls() {
+      const search = (document.getElementById('search').value || '').toLowerCase();
+      const brand = document.getElementById('brand-filter').value;
+      const status = document.getElementById('status-filter').value;
+      const today = new Date().toISOString().split('T')[0];
+
+      filteredCalls = allCalls.filter(call => {
+        const searchMatch = !search ||
+          (call.caller_name && call.caller_name.toLowerCase().includes(search)) ||
+          (call.caller_phone && call.caller_phone.includes(search)) ||
+          (call.inquiry_topic && call.inquiry_topic.toLowerCase().includes(search)) ||
+          (call.summary && call.summary.toLowerCase().includes(search));
+        const brandMatch = !brand || call.brand === brand;
+        const statusMatch = !status ||
+          (status === 'follow_up' && call.follow_up_needed) ||
+          (status === 'complete' && !call.follow_up_needed);
+
+        let quickMatch = true;
+        if (quickFilter === 'inbound') quickMatch = call.direction === 'inbound';
+        else if (quickFilter === 'outbound') quickMatch = call.direction === 'outbound';
+        else if (quickFilter === 'followup') quickMatch = !!call.follow_up_needed;
+        else if (quickFilter === 'today') quickMatch = call.timestamp && call.timestamp.startsWith(today);
+
+        return searchMatch && brandMatch && statusMatch && quickMatch;
+      });
+
+      renderCalls();
+    }
+
+    function renderCalls() {
+      const container = document.getElementById('calls-container');
+      const callsToShow = filteredCalls.slice(0, displayLimit);
+
+      if (callsToShow.length === 0) {
+        container.innerHTML = `
+          <div class="px-5 py-16 text-center text-gray-500">
+            <i class="fas fa-phone-slash text-3xl mb-3 opacity-40"></i>
+            <p class="text-sm">No calls match your filters</p>
+          </div>
+        `;
+        document.getElementById('load-more-container').classList.add('hidden');
+        return;
+      }
+
+      container.innerHTML = callsToShow.map((call, idx) => renderCallRow(call, idx + 1)).join('');
+
+      if (filteredCalls.length > displayLimit) {
+        document.getElementById('load-more-container').classList.remove('hidden');
+      } else {
+        document.getElementById('load-more-container').classList.add('hidden');
+      }
+    }
+
+    function renderCallRow(call, num) {
+      const brandColors = {
+        'O1dMatch': 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+        'Sevyn': 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30'
+      };
+      const brandClass = brandColors[call.brand] || 'bg-gray-500/15 text-gray-400 border-gray-500/30';
+
+      let statusBadge;
+      if (call.follow_up_needed) {
+        statusBadge = '<span class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30"><i class="fas fa-bell text-[10px]"></i>Follow-up</span>';
+      } else if (call.outcome && /error|failed|did-not-answer|busy|no-answer/i.test(call.outcome)) {
+        statusBadge = '<span class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30"><i class="fas fa-xmark text-[10px]"></i>'+(call.outcome||'failed')+'</span>';
+      } else {
+        statusBadge = '<span class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-brand-500/15 text-brand-400 border border-brand-500/30"><i class="fas fa-check text-[10px]"></i>Completed</span>';
+      }
+
+      const dirIcon = call.direction === 'outbound'
+        ? '<i class="fas fa-arrow-up-right-from-square text-blue-400 text-[10px]" title="Outbound"></i>'
+        : '<i class="fas fa-arrow-down text-amber-300 text-[10px]" title="Inbound"></i>';
+
+      return `
+        <div class="border-b border-soft last:border-b-0 hover:bg-ink-700/40 cursor-pointer transition" onclick="openCallDetail('${call.call_id}')">
+          <!-- Desktop row -->
+          <div class="hidden md:grid grid-cols-[40px_minmax(0,1fr)_120px_140px_100px_140px] gap-4 px-5 py-4 items-center">
+            <div class="text-xs text-gray-500 font-mono">${num}</div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                ${dirIcon}
+                <span class="font-medium truncate">${call.caller_name || 'Unknown caller'}</span>
+              </div>
+              <div class="text-xs text-gray-500 truncate font-mono">${formatPhone(call.caller_phone)}${call.inquiry_topic ? ' &middot; ' + call.inquiry_topic : ''}</div>
+            </div>
+            <div><span class="inline-block text-xs px-2 py-1 rounded-md border ${brandClass}">${call.brand || '?'}</span></div>
+            <div class="text-sm text-gray-400">${formatDateTime(call.timestamp)}</div>
+            <div class="text-sm text-gray-300 font-mono">${call.call_duration_min != null ? call.call_duration_min + 'm' : '—'}</div>
+            <div class="text-right">${statusBadge}</div>
+          </div>
+          <!-- Mobile card -->
+          <div class="md:hidden px-4 py-3.5 flex flex-col gap-2">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 mb-0.5">
+                  ${dirIcon}
+                  <span class="font-medium truncate">${call.caller_name || 'Unknown caller'}</span>
+                </div>
+                <div class="text-xs text-gray-500 truncate font-mono">${formatPhone(call.caller_phone)}</div>
+              </div>
+              <span class="inline-block text-[10px] px-2 py-0.5 rounded-md border ${brandClass} shrink-0">${call.brand || '?'}</span>
+            </div>
+            ${call.inquiry_topic ? `<div class="text-xs text-gray-400 truncate">${call.inquiry_topic}</div>` : ''}
+            <div class="flex items-center justify-between gap-2 text-xs">
+              <span class="text-gray-500 truncate">${formatDateTime(call.timestamp)} &middot; <span class="font-mono">${call.call_duration_min != null ? call.call_duration_min + 'm' : '—'}</span></span>
+              <span class="shrink-0">${statusBadge}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function loadMore() { displayLimit += 25; renderCalls(); }
+
+    function openCallDetail(callId) {
+      const call = allCalls.find(c => c.call_id === callId);
+      if (!call) return;
+
+      const brandColors = {
+        'O1dMatch': 'bg-amber-500/15 text-amber-300',
+        'Sevyn': 'bg-fuchsia-500/15 text-fuchsia-300'
+      };
+      const brandClass = brandColors[call.brand] || 'bg-gray-500/15 text-gray-400';
+
+      document.getElementById('drawer-content').innerHTML = `
+        <div class="space-y-5">
+          <!-- Caller block -->
+          <div class="flex items-start gap-4">
+            <div class="w-14 h-14 ${brandClass} rounded-2xl flex items-center justify-center text-2xl">
+              <i class="fas fa-user"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <h3 class="text-lg font-bold truncate">${call.caller_name || 'Unknown caller'}</h3>
+                <span class="inline-block text-xs px-2 py-0.5 rounded-md ${brandClass}">${call.brand || '?'}</span>
+              </div>
+              <p class="text-sm text-gray-400 font-mono">${formatPhone(call.caller_phone)}</p>
+              ${call.caller_email ? `<p class="text-xs text-gray-500 mt-0.5">${call.caller_email}</p>` : ''}
+            </div>
+          </div>
+
+          <!-- Quick actions -->
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="callBack('${call.caller_phone}')" class="flex items-center justify-center gap-2 p-3 bg-ink-700 hover:bg-ink-600 border border-soft rounded-xl text-sm font-medium transition">
+              <i class="fas fa-phone text-brand-400"></i>Call back
+            </button>
+            <button onclick="sendSMS('${call.caller_phone}')" class="flex items-center justify-center gap-2 p-3 bg-ink-700 hover:bg-ink-600 border border-soft rounded-xl text-sm font-medium transition">
+              <i class="fas fa-sms text-blue-400"></i>SMS
+            </button>
+            <button onclick="toggleFollowUp('${call.call_id}', ${!call.follow_up_needed})" class="flex items-center justify-center gap-2 p-3 bg-ink-700 hover:bg-ink-600 border border-soft rounded-xl text-sm font-medium transition">
+              <i class="fas fa-bell ${call.follow_up_needed ? 'text-amber-400' : 'text-gray-500'}"></i>${call.follow_up_needed ? 'Clear' : 'Flag'}
+            </button>
+          </div>
+
+          <!-- Meta grid -->
+          <div class="grid grid-cols-2 gap-2">
+            <div class="bg-ink-700/50 border border-soft rounded-xl p-3">
+              <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Duration</p>
+              <p class="text-sm font-medium font-mono">${call.call_duration_min != null ? call.call_duration_min + ' min' : '—'}</p>
+            </div>
+            <div class="bg-ink-700/50 border border-soft rounded-xl p-3">
+              <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Direction</p>
+              <p class="text-sm font-medium capitalize">${call.direction || 'inbound'}</p>
+            </div>
+            <div class="bg-ink-700/50 border border-soft rounded-xl p-3">
+              <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">When</p>
+              <p class="text-sm font-medium">${formatDateTime(call.timestamp)}</p>
+            </div>
+            <div class="bg-ink-700/50 border border-soft rounded-xl p-3">
+              <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Outcome</p>
+              <p class="text-sm font-medium">${call.outcome || '—'}</p>
+            </div>
+          </div>
+
+          ${call.inquiry_topic ? `
+          <div class="bg-ink-700/50 border border-soft rounded-xl p-4">
+            <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Inquiry topic</p>
+            <p class="text-sm">${call.inquiry_topic}</p>
+          </div>` : ''}
+
+          ${call.summary ? `
+          <div class="bg-ink-700/50 border border-soft rounded-xl p-4">
+            <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-2">AI summary</p>
+            <p class="text-sm text-gray-300 leading-relaxed">${call.summary}</p>
+          </div>` : ''}
+
+          ${call.transcript ? `
+          <div class="bg-ink-700/50 border border-soft rounded-xl p-4">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-[10px] uppercase tracking-wider text-gray-500">Full transcript</p>
+              <button onclick="copyTranscript()" class="text-xs text-brand-400 hover:text-brand-300 font-medium">
+                <i class="fas fa-copy mr-1"></i>Copy
+              </button>
+            </div>
+            <div id="transcript-text" class="transcript-box text-xs text-gray-300 whitespace-pre-wrap leading-relaxed scrollbar-thin bg-ink-900 rounded-lg p-3 font-mono">${formatTranscript(call.transcript)}</div>
+          </div>` : `
+          <div class="bg-ink-700/30 border border-soft border-dashed rounded-xl p-6 text-center text-gray-500">
+            <i class="fas fa-file-lines text-xl mb-2 opacity-50"></i>
+            <p class="text-xs">No transcript available</p>
+          </div>`}
+
+          ${call.recording_url ? `
+          <div class="bg-ink-700/50 border border-soft rounded-xl p-4">
+            <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-2">Recording</p>
+            <audio controls class="w-full" src="${call.recording_url}"></audio>
+          </div>` : ''}
+
+          <div class="pt-4 border-t border-soft">
+            <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Call ID</p>
+            <p class="text-xs text-gray-600 font-mono break-all">${call.call_id}</p>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('drawer').classList.remove('translate-x-full');
+      document.getElementById('drawer-overlay').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeDrawer() {
+      document.getElementById('drawer').classList.add('translate-x-full');
+      document.getElementById('drawer-overlay').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    function formatTranscript(transcript) {
+      if (!transcript) return '';
+      return transcript
+        .replace(/\b(Agent|AI|Assistant):/g, '<span class="text-brand-400 font-semibold">Adriana:</span>')
+        .replace(/\bUser:/g, '<span class="text-blue-400 font-semibold">Caller:</span>')
+        .replace(/\bCaller:/g, '<span class="text-blue-400 font-semibold">Caller:</span>');
+    }
+
+    function copyTranscript() {
+      const text = document.getElementById('transcript-text').innerText;
+      navigator.clipboard.writeText(text).then(() => showToast('Transcript copied', 'success'));
+    }
+
+    function callBack(phone) { window.location.href = `/?action=call&phone=${encodeURIComponent(phone)}`; }
+    function sendSMS(phone)  { window.location.href = `/?action=sms&phone=${encodeURIComponent(phone)}`; }
+
+    async function toggleFollowUp(callId, value) {
+      try {
+        const response = await fetch(`/api/call/${callId}/follow-up`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ follow_up_needed: value })
+        });
+        if (response.ok) {
+          const call = allCalls.find(c => c.call_id === callId);
+          if (call) call.follow_up_needed = value;
+          showToast(value ? 'Flagged for follow-up' : 'Follow-up cleared', 'success');
+          updateStats(); renderCalls(); openCallDetail(callId);
+        }
+      } catch (error) { showToast('Failed to update', 'error'); }
+    }
+
+    function exportFollowUps() {
+      const rows = allCalls.filter(c => c.follow_up_needed);
+      if (rows.length === 0) { showToast('No follow-ups to export', 'info'); return; }
+      downloadCSV(rows, 'follow-ups.csv');
+    }
+    function exportAll() {
+      if (allCalls.length === 0) { showToast('No calls to export', 'info'); return; }
+      downloadCSV(allCalls, 'all-calls.csv');
+    }
+    function downloadCSV(rows, filename) {
+      const cols = ['timestamp','brand','direction','caller_name','caller_phone','caller_email','inquiry_topic','outcome','call_duration_min','follow_up_needed','summary','call_id'];
+      const csv = [cols.join(',')].concat(rows.map(r => cols.map(c => {
+        const v = r[c] == null ? '' : String(r[c]).replace(/"/g,'""');
+        return /[",\n]/.test(v) ? `"${v}"` : v;
+      }).join(','))).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+    }
+
+    function formatPhone(phone) {
+      if (!phone) return '—';
+      const cleaned = phone.replace(/\D/g, '');
+      if (cleaned.length === 11 && cleaned.startsWith('1')) return `+1 (${cleaned.slice(1,4)}) ${cleaned.slice(4,7)}-${cleaned.slice(7)}`;
+      return phone;
+    }
+    function formatDateTime(timestamp) {
+      if (!timestamp) return '—';
+      const d = new Date(timestamp);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const colors = {
+        success: 'bg-brand-500/15 border-brand-500/30 text-brand-400',
+        error:   'bg-rose-500/15 border-rose-500/30 text-rose-400',
+        info:    'bg-blue-500/15 border-blue-500/30 text-blue-400'
+      };
+      const toast = document.createElement('div');
+      toast.className = `${colors[type]} border rounded-xl px-4 py-2.5 text-sm font-medium shadow-xl`;
+      toast.innerHTML = message;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+  </script>
+</body>
+</html>

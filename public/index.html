@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>O1dMatch Calls</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            ink: { 900:'#0B1C3A', 800:'#142A4F', 700:'#1A3358', 600:'#234070', 500:'#222933' },
+            brand: { 500:'#C9A96E', 400:'#D9BC85', 300:'#E5CFA0' }
+          },
+          fontFamily: {
+            sans: ['Inter','-apple-system','BlinkMacSystemFont','sans-serif'],
+            mono: ['"SF Mono"','ui-monospace','JetBrains Mono','Menlo','monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // dark by default; users can flip to light via toggle
+    const savedTheme = localStorage.getItem('adriana-theme');
+    if (savedTheme !== 'light') document.documentElement.classList.add('dark');
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .border-soft    { border-color: rgba(255,255,255,0.06); }
+    .border-soft-hi { border-color: rgba(255,255,255,0.10); }
+    .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #222933; border-radius: 2px; }
+    .live-dot { animation: live-pulse 2s ease-in-out infinite; }
+    @keyframes live-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .pulse-ring { animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; }
+    @keyframes pulse-ring { 0%{transform:scale(0.5);opacity:1} 100%{transform:scale(1.5);opacity:0} }
+    .activity-item { animation: slideIn 0.25s ease-out; }
+    @keyframes slideIn { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:translateX(0)} }
+    .dir-in   { background: rgba(201,169,110,0.12); color: #D9BC85; border:1px solid rgba(201,169,110,0.25); }
+    .dir-out  { background: rgba(59,130,246,0.12); color: #60a5fa; border:1px solid rgba(59,130,246,0.25); }
+    .brand-ssv       { background: rgba(59,130,246,0.15); color:#60a5fa; }
+    .brand-aventus   { background: rgba(201,169,110,0.15); color:#D9BC85; }
+    .brand-o1dmatch  { background: rgba(139,92,246,0.15); color:#a78bfa; }
+    .brand-igta      { background: rgba(245,158,11,0.15); color:#fbbf24; }
+    .brand-dcfederal,
+    .brand-dc-federal{ background: rgba(244,63,94,0.15);  color:#fb7185; }
+    .brand-sevyn     { background: rgba(217,70,239,0.15); color:#e879f9; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2.9.0/dist/twilio.min.js"></script>
+</head>
+<body class="bg-ink-900 text-gray-100 min-h-screen">
+
+  <!-- Alert banner (hidden by default) -->
+  <div id="alert-banner" class="hidden border-b border-amber-500/20 bg-amber-500/10">
+    <div class="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between text-sm">
+      <div class="flex items-center gap-2">
+        <i class="fas fa-bell text-amber-400 text-xs"></i>
+        <span id="alert-text" class="text-amber-300">3 calls need follow-up</span>
+      </div>
+      <button onclick="document.getElementById('alert-banner').classList.add('hidden')" class="text-amber-400 hover:text-amber-200">
+        <i class="fas fa-times text-xs"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Top bar -->
+  <header class="border-b border-soft">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-3 sm:gap-8 min-w-0">
+        <a href="/" class="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 bg-brand-500 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20 relative">
+            <span class="text-[#0B1C3A] font-extrabold text-xs sm:text-sm tracking-tight">O1</span>
+            <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-brand-400 rounded-full border-2 border-ink-900"></span>
+          </div>
+          <span class="font-bold text-sm sm:text-base">O1dMatch Calls</span>
+        </a>
+        <nav class="flex items-center gap-0.5 sm:gap-1 text-xs sm:text-sm">
+          <a href="/" class="px-2 sm:px-3 py-1.5 rounded-lg text-white bg-ink-700 whitespace-nowrap">
+            <i class="fas fa-gauge text-xs sm:mr-1.5"></i><span class="hidden sm:inline">Dashboard</span>
+          </a>
+          <a href="/calls" class="px-2 sm:px-3 py-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-ink-700 transition whitespace-nowrap">
+            <i class="fas fa-clock-rotate-left text-xs sm:mr-1.5"></i><span class="hidden sm:inline">History</span>
+          </a>
+          <a id="admin-link" href="/admin.html" class="hidden px-2 sm:px-3 py-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-ink-700 transition whitespace-nowrap">
+            <i class="fas fa-users-gear text-xs sm:mr-1.5"></i><span class="hidden sm:inline">Admin</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 text-xs">
+          <span class="relative flex h-2 w-2">
+            <span class="pulse-ring absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
+          </span>
+          <span class="text-brand-400 font-medium">Live</span>
+        </div>
+        <span id="current-time" class="text-gray-500 text-xs font-mono hidden lg:inline">--:--:--</span>
+        <button onclick="toggleTheme()" class="w-8 h-8 rounded-lg hover:bg-ink-700 flex items-center justify-center text-gray-400 hover:text-white transition" title="Toggle theme">
+          <i id="theme-icon" class="fas fa-moon text-xs"></i>
+        </button>
+        <button onclick="refreshData()" class="w-8 h-8 rounded-lg hover:bg-ink-700 flex items-center justify-center text-gray-400 hover:text-white transition" title="Refresh">
+          <i id="refresh-icon" class="fas fa-rotate text-xs"></i>
+        </button>
+        <a href="/auth/logout" class="text-xs sm:text-sm text-gray-400 hover:text-white transition" title="Sign out">
+          <i class="fas fa-arrow-right-from-bracket text-xs"></i><span class="hidden sm:inline ml-1">Sign out</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+
+    <!-- Page heading -->
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold tracking-tight">Dashboard</h1>
+      <p class="text-gray-500 text-sm mt-1">Real-time view of every brand</p>
+    </div>
+
+    <!-- Stat tiles -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-ink-800 border border-soft rounded-2xl p-4 sm:p-5">
+        <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">
+          <i class="fas fa-phone text-blue-400"></i>Total calls
+        </div>
+        <div class="flex items-baseline justify-between">
+          <span id="stat-calls" class="text-3xl sm:text-4xl font-bold font-mono text-white">0</span>
+          <span class="text-xs text-brand-400 bg-brand-500/10 px-2 py-1 rounded-full">
+            <i class="fas fa-arrow-up text-[10px] mr-1"></i><span id="calls-trend">+12%</span>
+          </span>
+        </div>
+        <p class="text-gray-500 text-xs mt-2">Today</p>
+      </div>
+
+      <div class="bg-ink-800 border border-soft rounded-2xl p-4 sm:p-5">
+        <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">
+          <i class="fas fa-comment-dots text-brand-400"></i>SMS messages
+        </div>
+        <div class="flex items-baseline justify-between">
+          <span id="stat-sms" class="text-3xl sm:text-4xl font-bold font-mono text-white">0</span>
+          <span class="text-xs text-brand-400 bg-brand-500/10 px-2 py-1 rounded-full">
+            <i class="fas fa-arrow-up text-[10px] mr-1"></i><span id="sms-trend">+8%</span>
+          </span>
+        </div>
+        <p class="text-gray-500 text-xs mt-2">Today</p>
+      </div>
+
+      <div class="bg-ink-800 border border-soft rounded-2xl p-4 sm:p-5">
+        <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">
+          <i class="fas fa-user-plus text-violet-400"></i>New leads
+        </div>
+        <div class="flex items-baseline justify-between">
+          <span id="stat-leads" class="text-3xl sm:text-4xl font-bold font-mono text-white">0</span>
+          <span class="text-xs text-brand-400 bg-brand-500/10 px-2 py-1 rounded-full">
+            <i class="fas fa-arrow-up text-[10px] mr-1"></i><span id="leads-trend">+5</span>
+          </span>
+        </div>
+        <p class="text-gray-500 text-xs mt-2">Today</p>
+      </div>
+
+      <div class="bg-ink-800 border border-soft rounded-2xl p-4 sm:p-5">
+        <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">
+          <i class="fas fa-bell text-amber-400"></i>Need follow-up
+        </div>
+        <div class="flex items-baseline justify-between">
+          <span id="stat-followups" class="text-3xl sm:text-4xl font-bold font-mono text-amber-400">0</span>
+          <span id="followup-badge" class="hidden text-xs text-rose-400 bg-rose-500/10 px-2 py-1 rounded-full">Urgent</span>
+        </div>
+        <p class="text-gray-500 text-xs mt-2">Pending</p>
+      </div>
+    </div>
+
+    <!-- Main grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- LEFT (2/3) -->
+      <div class="lg:col-span-2 space-y-6">
+
+        <!-- Live activity -->
+        <div class="bg-ink-800 border border-soft rounded-2xl overflow-hidden">
+          <div class="px-5 py-4 border-b border-soft flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 bg-brand-500 rounded-full live-dot"></span>
+              <h2 class="text-sm font-semibold">Live activity</h2>
+            </div>
+            <span class="text-xs text-gray-500">Auto-updates every 30s</span>
+          </div>
+          <div id="activity-feed" class="max-h-72 overflow-y-auto scrollbar-thin">
+            <div class="px-5 py-10 text-center text-gray-500">
+              <i class="fas fa-satellite-dish text-2xl mb-2 opacity-40"></i>
+              <p class="text-sm">Waiting for activity…</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent calls -->
+        <div class="bg-ink-800 border border-soft rounded-2xl overflow-hidden">
+          <div class="px-5 py-4 border-b border-soft flex items-center justify-between">
+            <h2 class="text-sm font-semibold flex items-center gap-2">
+              <i class="fas fa-phone text-blue-400 text-xs"></i>Recent calls
+            </h2>
+            <a href="/calls" class="text-xs text-brand-400 hover:text-brand-300 font-medium">
+              View all <i class="fas fa-arrow-up-right-from-square ml-1 text-[10px]"></i>
+            </a>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="text-left border-b border-soft">
+                  <th class="px-3 sm:px-5 py-3 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Time</th>
+                  <th class="hidden sm:table-cell px-5 py-3 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Dir</th>
+                  <th class="px-3 sm:px-5 py-3 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Caller</th>
+                  <th class="hidden md:table-cell px-5 py-3 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Brand</th>
+                  <th class="hidden lg:table-cell px-5 py-3 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Dur.</th>
+                  <th class="px-3 sm:px-5 py-3 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Status</th>
+                  <th class="hidden md:table-cell px-5 py-3"></th>
+                </tr>
+              </thead>
+              <tbody id="calls-table">
+                <tr>
+                  <td colspan="7" class="px-5 py-12 text-center text-gray-500">
+                    <i class="fas fa-phone-slash text-2xl mb-2 opacity-40"></i>
+                    <p class="text-sm">No calls yet — they'll appear here in real time.</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="bg-ink-800 border border-soft rounded-2xl p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-semibold flex items-center gap-2">
+              <i class="fas fa-chart-line text-brand-400 text-xs"></i>Call volume
+            </h2>
+            <div class="flex items-center gap-1 bg-ink-700 border border-soft rounded-lg p-0.5">
+              <button onclick="setChartRange('7d')" class="text-[11px] px-2.5 py-1 rounded-md bg-ink-500 text-white font-medium">7D</button>
+              <button onclick="setChartRange('30d')" class="text-[11px] px-2.5 py-1 rounded-md text-gray-400 hover:text-white">30D</button>
+            </div>
+          </div>
+          <div style="height:200px;position:relative;">
+            <canvas id="callsChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT (1/3) -->
+      <div class="space-y-6">
+
+        <!-- Quick actions -->
+        <div class="bg-ink-800 border border-soft rounded-2xl overflow-hidden">
+          <div class="px-5 py-4 border-b border-soft">
+            <h2 class="text-sm font-semibold flex items-center gap-2">
+              <i class="fas fa-bolt text-amber-400 text-xs"></i>Quick actions
+            </h2>
+          </div>
+
+          <div class="flex gap-1 p-2 border-b border-soft">
+            <button onclick="switchTab('call')" id="tab-call" class="flex-1 px-3 py-2 rounded-lg text-sm font-medium text-white bg-ink-700">
+              <i class="fas fa-phone text-xs mr-1.5"></i>Call
+            </button>
+            <button onclick="switchTab('sms')" id="tab-sms" class="flex-1 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white">
+              <i class="fas fa-sms text-xs mr-1.5"></i>SMS
+            </button>
+          </div>
+
+          <!-- Call form -->
+          <div id="form-call" class="p-5 space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-2">Caller</label>
+              <div class="grid grid-cols-2 gap-1 bg-ink-700 p-1 rounded-xl">
+                <button type="button" id="caller-agent" onclick="setCallerMode('agent')" class="px-3 py-2 rounded-lg text-xs font-semibold bg-ink-500 text-white">
+                  <i class="fas fa-robot text-[10px] mr-1"></i>AI Agent
+                </button>
+                <button type="button" id="caller-human" onclick="setCallerMode('human')" class="px-3 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-white">
+                  <i class="fas fa-user text-[10px] mr-1"></i>Human (Me)
+                </button>
+              </div>
+              <p class="text-[11px] text-gray-500 mt-1.5" id="caller-hint">AI agent will handle the call.</p>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-2">Phone number</label>
+              <input type="tel" id="call-phone" placeholder="+1 (555) 123-4567"
+                class="w-full bg-ink-700 border border-soft rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/15 transition">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-2">Brand</label>
+              <select id="call-brand" class="w-full bg-ink-700 border border-soft rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500/60 transition">
+                <option value="+15617944621">O1dMatch</option>
+                <option value="+19803032854">Sevyn Sales Training</option>
+              </select>
+            </div>
+            <div id="call-task-wrapper">
+              <label class="block text-xs font-medium text-gray-400 mb-2">Instructions <span class="text-gray-600">(optional)</span></label>
+              <textarea id="call-task" placeholder="Custom context for this call…" rows="2"
+                class="w-full bg-ink-700 border border-soft rounded-xl px-3.5 py-2.5 text-sm placeholder-gray-500 focus:outline-none focus:border-brand-500/60 transition resize-none"></textarea>
+            </div>
+            <button id="initiate-call-btn" onclick="makeCall()" class="w-full bg-brand-500 hover:bg-brand-400 text-[#0B1C3A] rounded-xl px-4 py-2.5 text-sm font-semibold transition">
+              <i class="fas fa-phone mr-2"></i>Initiate call
+            </button>
+
+            <!-- In-call panel -->
+            <div id="incall-panel" class="hidden bg-brand-500/10 border border-brand-500/30 rounded-xl p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-[10px] uppercase tracking-wider text-gray-500">Status</p>
+                  <p id="incall-status" class="text-sm font-semibold text-brand-400">Connecting…</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-[10px] uppercase tracking-wider text-gray-500">Duration</p>
+                  <p id="incall-timer" class="text-sm font-mono">00:00</p>
+                </div>
+              </div>
+              <p id="incall-target" class="text-xs text-gray-300"></p>
+              <div class="grid grid-cols-2 gap-2">
+                <button id="mute-btn" onclick="toggleMute()" class="px-3 py-2 rounded-lg text-xs font-semibold bg-ink-700 hover:bg-ink-600 text-white transition">
+                  <i class="fas fa-microphone mr-1"></i>Mute
+                </button>
+                <button onclick="hangupCall()" class="px-3 py-2 rounded-lg text-xs font-semibold bg-rose-500 hover:bg-rose-600 text-white transition">
+                  <i class="fas fa-phone-slash mr-1"></i>Hang up
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SMS form -->
+          <div id="form-sms" class="p-5 space-y-4 hidden">
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-2">Phone number</label>
+              <input type="tel" id="sms-phone" placeholder="+1 (555) 123-4567"
+                class="w-full bg-ink-700 border border-soft rounded-xl px-3.5 py-2.5 text-sm placeholder-gray-500 focus:outline-none focus:border-brand-500/60 focus:ring-2 focus:ring-brand-500/15 transition">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-2">Send from</label>
+              <select id="sms-brand" class="w-full bg-ink-700 border border-soft rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500/60 transition">
+                <option value="+15617944621">O1dMatch (+1 561-794-4621)</option>
+                <option value="+19803032854">Sevyn Sales Training (+1 980-303-2854)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-2">Message</label>
+              <textarea id="sms-message" placeholder="Your message…" rows="3"
+                class="w-full bg-ink-700 border border-soft rounded-xl px-3.5 py-2.5 text-sm placeholder-gray-500 focus:outline-none focus:border-brand-500/60 transition resize-none"></textarea>
+            </div>
+            <div class="flex items-center justify-between">
+              <label class="flex items-center text-xs text-gray-400 cursor-pointer">
+                <input type="checkbox" id="sms-ai" class="mr-2 rounded bg-ink-700 border-soft text-brand-500 focus:ring-brand-500/40">
+                Enhance with AI
+              </label>
+              <span id="char-count" class="text-xs text-gray-500 font-mono">0/160</span>
+            </div>
+
+            <!-- AI preview -->
+            <div id="sms-preview-area" class="hidden">
+              <div class="bg-brand-500/5 border border-brand-500/25 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-semibold text-brand-400"><i class="fas fa-wand-magic-sparkles mr-1"></i>AI Enhanced</span>
+                  <span id="preview-char-count" class="text-xs text-gray-500 font-mono">0/160</span>
+                </div>
+                <p id="sms-preview-text" class="text-sm text-gray-200 leading-relaxed"></p>
+                <div class="flex items-center gap-2 mt-3">
+                  <button onclick="acceptPreview()" class="flex-1 bg-brand-500 hover:bg-brand-400 text-[#0B1C3A] rounded-lg px-3 py-1.5 text-xs font-semibold transition">
+                    <i class="fas fa-check mr-1"></i>Send this
+                  </button>
+                  <button onclick="editPreview()" class="flex-1 bg-ink-700 hover:bg-ink-600 text-white rounded-lg px-3 py-1.5 text-xs font-semibold transition">
+                    <i class="fas fa-pen mr-1"></i>Edit
+                  </button>
+                  <button onclick="cancelPreview()" class="px-3 py-1.5 text-xs text-gray-500 hover:text-white transition">Cancel</button>
+                </div>
+              </div>
+            </div>
+
+            <button id="sms-send-btn" onclick="handleSMSSend()" class="w-full bg-brand-500 hover:bg-brand-400 text-[#0B1C3A] rounded-xl px-4 py-2.5 text-sm font-semibold transition">
+              <i class="fas fa-paper-plane mr-2"></i>Send SMS
+            </button>
+          </div>
+        </div>
+
+        <!-- Brand status -->
+        <div class="bg-ink-800 border border-soft rounded-2xl overflow-hidden">
+          <div class="px-5 py-4 border-b border-soft">
+            <h2 class="text-sm font-semibold flex items-center gap-2">
+              <i class="fas fa-building text-violet-400 text-xs"></i>Brand status
+            </h2>
+          </div>
+          <div id="brand-list"></div>
+        </div>
+
+        <!-- System health -->
+        <div class="bg-ink-800 border border-soft rounded-2xl p-5">
+          <h2 class="text-sm font-semibold mb-3 flex items-center gap-2">
+            <i class="fas fa-heart-pulse text-rose-400 text-xs"></i>System health
+          </h2>
+          <div class="space-y-2.5 text-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-gray-400">Vapi</span>
+              <span class="flex items-center gap-1 text-brand-400 text-xs"><i class="fas fa-check-circle"></i>Connected</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-gray-400">Twilio</span>
+              <span class="flex items-center gap-1 text-brand-400 text-xs"><i class="fas fa-check-circle"></i>Connected</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-gray-400">Supabase</span>
+              <span id="supabase-status" class="flex items-center gap-1 text-brand-400 text-xs"><i class="fas fa-check-circle"></i>Connected</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-gray-400">Uptime</span>
+              <span id="uptime" class="text-xs text-gray-300 font-mono">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Toast container -->
+  <div id="toast-container" class="fixed bottom-6 right-6 space-y-2 z-50"></div>
+
+  <!-- Call details modal -->
+  <div id="call-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-ink-800 rounded-2xl border border-soft-hi w-full max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-thin shadow-2xl">
+      <div class="px-6 py-4 border-b border-soft flex items-center justify-between sticky top-0 bg-ink-800/95 backdrop-blur z-10">
+        <h3 class="font-semibold text-base">Call details</h3>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-lg hover:bg-ink-700 flex items-center justify-center text-gray-400 hover:text-white transition">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div id="modal-content" class="p-6"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '';
+    let callsChart = null;
+    let refreshInterval = null;
+
+    const brands = [
+      { id: 'o1dmatch', name: 'O1dMatch', phone: '+15617944621', color: 'amber', icon: 'wand-magic-sparkles' },
+      { id: 'sevyn', name: 'Sales Training', phone: '+19803032854', color: 'amber', icon: 'robot' }
+    ];
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      html.classList.toggle('dark');
+      const isDark = html.classList.contains('dark');
+      const icon = document.getElementById('theme-icon');
+      if (icon) icon.classList.replace(isDark ? 'fa-sun' : 'fa-moon', isDark ? 'fa-moon' : 'fa-sun');
+      localStorage.setItem('adriana-theme', isDark ? 'dark' : 'light');
+      initChart();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      const icon = document.getElementById('theme-icon');
+      if (icon) icon.className = 'fas ' + (isDark ? 'fa-moon' : 'fa-sun') + ' text-xs';
+
+      fetch('/auth/status').then(r => r.json()).then(data => {
+        if (data.authenticated && data.user?.role === 'admin') {
+          const a = document.getElementById('admin-link');
+          if (a) a.classList.remove('hidden');
+        }
+      }).catch(() => {});
+
+      updateTime();
+      setInterval(updateTime, 1000);
+      renderBrands();
+      initChart();
+      refreshData();
+      refreshInterval = setInterval(refreshData, 30000);
+
+      document.getElementById('sms-message')?.addEventListener('input', (e) => {
+        const count = e.target.value.length;
+        const el = document.getElementById('char-count');
+        el.textContent = `${count}/160`;
+        el.className = count > 160 ? 'text-xs text-rose-400 font-mono' : 'text-xs text-gray-500 font-mono';
+      });
+    });
+
+    function updateTime() {
+      document.getElementById('current-time').textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    function switchTab(tab) {
+      const callTab = document.getElementById('tab-call');
+      const smsTab  = document.getElementById('tab-sms');
+      const activeCls = 'flex-1 px-3 py-2 rounded-lg text-sm font-medium text-white bg-ink-700';
+      const idleCls   = 'flex-1 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white';
+      callTab.className = tab === 'call' ? activeCls : idleCls;
+      smsTab.className  = tab === 'sms'  ? activeCls : idleCls;
+      document.getElementById('form-call').classList.toggle('hidden', tab !== 'call');
+      document.getElementById('form-sms').classList.toggle('hidden', tab !== 'sms');
+    }
+
+    function renderBrands() {
+      const list = document.getElementById('brand-list');
+      list.innerHTML = brands.map(brand => `
+        <div class="px-5 py-3.5 flex items-center justify-between hover:bg-ink-700/40 transition cursor-pointer border-b border-soft last:border-b-0" onclick="filterByBrand('${brand.id}')">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 bg-${brand.color}-500/20 rounded-lg flex items-center justify-center">
+              <i class="fas fa-${brand.icon} text-${brand.color}-400 text-sm"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium">${brand.name}</p>
+              <p class="text-xs text-gray-500 font-mono">${formatPhone(brand.phone)}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400" id="brand-calls-${brand.id}">0 calls</span>
+            <span class="w-1.5 h-1.5 bg-brand-500 rounded-full"></span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function initChart() {
+      const canvas = document.getElementById('callsChart');
+      const ctx = canvas.getContext('2d');
+      const isDark = document.documentElement.classList.contains('dark');
+      const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+      gradient.addColorStop(0, 'rgba(201,169,110,0.30)');
+      gradient.addColorStop(1, 'rgba(201,169,110,0)');
+      const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+      const tickColor = isDark ? '#6b7280' : '#4b5563';
+      if (callsChart) callsChart.destroy();
+      callsChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+          datasets: [{
+            label: 'Calls', data: [0,0,0,0,0,0,0],
+            borderColor: '#C9A96E', backgroundColor: gradient,
+            borderWidth: 2, fill: true, tension: 0.4,
+            pointRadius: 0, pointHoverRadius: 6,
+            pointHoverBackgroundColor: '#C9A96E',
+            pointHoverBorderColor: isDark ? '#fff' : '#1f2937',
+            pointHoverBorderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, resizeDelay: 0,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11 } } },
+            y: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11 } }, beginAtZero: true }
+          },
+          interaction: { mode: 'index', intersect: false }
+        }
+      });
+    }
+
+    async function refreshData() {
+      const icon = document.getElementById('refresh-icon');
+      icon.classList.add('animate-spin');
+      try {
+        const response = await fetch(`${API_BASE}/api/dashboard`);
+        if (response.ok) updateDashboard(await response.json());
+      } catch (e) { console.error(e); }
+      setTimeout(() => icon.classList.remove('animate-spin'), 500);
+    }
+
+    function updateDashboard(data) {
+      document.getElementById('stat-calls').textContent = data.stats?.total_calls || 0;
+      document.getElementById('stat-sms').textContent = data.stats?.total_sms || 0;
+      document.getElementById('stat-leads').textContent = data.stats?.total_leads || 0;
+
+      const followups = data.calls?.filter(c => c.follow_up_needed)?.length || 0;
+      document.getElementById('stat-followups').textContent = followups;
+      if (followups > 0) {
+        document.getElementById('followup-badge').classList.remove('hidden');
+        document.getElementById('alert-banner').classList.remove('hidden');
+        document.getElementById('alert-text').textContent = `${followups} call${followups > 1 ? 's' : ''} need follow-up`;
+      }
+
+      if (data.calls && data.calls.length > 0) renderCallsTable(data.calls.slice(0, 10));
+      renderActivityFeed(data.calls || [], data.sms || []);
+
+      if (data.chartData) {
+        if (data.chartLabels) callsChart.data.labels = data.chartLabels;
+        callsChart.data.datasets[0].data = data.chartData;
+        callsChart.update();
+      }
+
+      if (data.calls) {
+        brands.forEach(brand => {
+          const count = data.calls.filter(c => c.brand === brand.name || c.brand === brand.id.toUpperCase()).length;
+          const el = document.getElementById(`brand-calls-${brand.id}`);
+          if (el) el.textContent = `${count} calls`;
+        });
+      }
+    }
+
+    function renderCallsTable(calls) {
+      const tbody = document.getElementById('calls-table');
+      tbody.innerHTML = calls.map(call => {
+        const isOut = call.direction === 'outbound';
+        const dirPill = isOut
+          ? '<span class="dir-out text-[10px] font-medium px-2 py-0.5 rounded-full inline-flex items-center"><i class="fas fa-arrow-up text-[8px] mr-1"></i>Out</span>'
+          : '<span class="dir-in text-[10px] font-medium px-2 py-0.5 rounded-full inline-flex items-center"><i class="fas fa-arrow-down text-[8px] mr-1"></i>In</span>';
+        const contactLabel = isOut ? 'Called' : 'From';
+        return `
+        <tr class="border-b border-soft last:border-b-0 hover:bg-ink-700/40 cursor-pointer transition" onclick="viewCall('${call.call_id}')">
+          <td class="px-3 sm:px-5 py-3 text-xs text-gray-400 font-mono whitespace-nowrap">${formatTime(call.timestamp)}</td>
+          <td class="hidden sm:table-cell px-5 py-3">${dirPill}</td>
+          <td class="px-3 sm:px-5 py-3 min-w-0">
+            <p class="text-sm font-medium truncate">${call.caller_name || 'Unknown'}</p>
+            <p class="text-[11px] text-gray-500 font-mono truncate">${contactLabel}: ${formatPhone(call.caller_phone)}</p>
+            <p class="md:hidden text-[10px] mt-1"><span class="font-medium px-1.5 py-0.5 rounded ${brandClass(call.brand)}">${call.brand || '?'}</span></p>
+          </td>
+          <td class="hidden md:table-cell px-5 py-3"><span class="text-[10px] font-medium px-2 py-0.5 rounded-full ${brandClass(call.brand)}">${call.brand || '?'}</span></td>
+          <td class="hidden lg:table-cell px-5 py-3 text-xs text-gray-400 font-mono">${call.call_duration_min != null ? call.call_duration_min + 'm' : '—'}</td>
+          <td class="px-3 sm:px-5 py-3">${call.follow_up_needed
+            ? '<span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25"><i class="fas fa-bell text-[8px] mr-1"></i>Follow-up</span>'
+            : '<span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-brand-500/15 text-brand-400 border border-brand-500/25">Complete</span>'}</td>
+          <td class="hidden md:table-cell px-5 py-3 text-right">
+            <button onclick="event.stopPropagation(); viewCall('${call.call_id}')" class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-ink-600 transition">
+              <i class="fas fa-chevron-right text-[10px]"></i>
+            </button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderActivityFeed(calls, sms) {
+      const feed = document.getElementById('activity-feed');
+      const activities = [
+        ...calls.map(c => ({ ...c, type: 'call', time: new Date(c.timestamp) })),
+        ...sms.map(s => ({ ...s, type: 'sms', time: new Date(s.created_at) }))
+      ].sort((a, b) => b.time - a.time).slice(0, 15);
+      if (activities.length === 0) return;
+      feed.innerHTML = activities.map(a => {
+        const isOutCall = a.type === 'call' && a.direction === 'outbound';
+        const isCall = a.type === 'call';
+        const iconBg = !isCall ? 'bg-brand-500/15' : (isOutCall ? 'bg-blue-500/15' : 'bg-indigo-500/15');
+        const iconEl = !isCall
+          ? '<i class="fas fa-comment text-brand-400 text-[10px]"></i>'
+          : (isOutCall
+            ? '<i class="fas fa-arrow-up text-blue-400 text-[10px]"></i>'
+            : '<i class="fas fa-arrow-down text-indigo-400 text-[10px]"></i>');
+        const actionText = !isCall
+          ? `<span class="text-gray-500">SMS ${a.direction === 'inbound' ? 'from' : 'to'}</span>`
+          : `<span class="text-gray-500">${isOutCall ? 'Called' : 'Call from'}</span>`;
+        const contactName = isCall ? (a.caller_name || formatPhone(a.caller_phone)) : formatPhone(a.from_number || a.to_number);
+        return `
+        <div class="activity-item px-5 py-3 flex items-center gap-3 hover:bg-ink-700/40 border-b border-soft last:border-0 cursor-pointer transition" ${isCall && a.call_id ? `onclick="viewCall('${a.call_id}')"` : ''}>
+          <div class="w-8 h-8 ${iconBg} rounded-xl flex items-center justify-center flex-shrink-0">${iconEl}</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs truncate leading-tight">
+              ${actionText} <span class="font-semibold text-white">${contactName}</span>
+            </p>
+            <div class="flex items-center gap-1.5 mt-1">
+              <span class="text-[10px] font-medium px-1.5 py-0.5 rounded ${brandClass(a.brand)}">${a.brand || 'Sevyn'}</span>
+              <span class="text-[10px] text-gray-500">${formatTimeAgo(a.time)}</span>
+              ${a.call_duration_min ? `<span class="text-[10px] text-gray-500 font-mono">${a.call_duration_min}m</span>` : ''}
+            </div>
+          </div>
+          ${a.follow_up_needed ? '<span class="w-2 h-2 bg-amber-400 rounded-full flex-shrink-0"></span>' : ''}
+        </div>`;
+      }).join('');
+    }
+
+    function normalizePhone(raw) {
+      let digits = raw.replace(/[\s\-\(\)\.\+]/g, '');
+      if (digits.length === 10) digits = '1' + digits;
+      return '+' + digits;
+    }
+
+    let callerMode = 'agent';
+    function setCallerMode(mode) {
+      callerMode = mode;
+      const agentBtn = document.getElementById('caller-agent');
+      const humanBtn = document.getElementById('caller-human');
+      const taskWrap = document.getElementById('call-task-wrapper');
+      const hint     = document.getElementById('caller-hint');
+      const initBtn  = document.getElementById('initiate-call-btn');
+      const activeCls = 'px-3 py-2 rounded-lg text-xs font-semibold bg-ink-500 text-white';
+      const idleCls   = 'px-3 py-2 rounded-lg text-xs font-semibold text-gray-400 hover:text-white';
+      if (mode === 'agent') {
+        agentBtn.className = activeCls;
+        humanBtn.className = idleCls;
+        agentBtn.innerHTML = '<i class="fas fa-robot text-[10px] mr-1"></i>AI Agent';
+        humanBtn.innerHTML = '<i class="fas fa-user text-[10px] mr-1"></i>Human (Me)';
+        taskWrap.classList.remove('hidden');
+        hint.textContent = 'AI agent will handle the call.';
+        initBtn.innerHTML = '<i class="fas fa-phone mr-2"></i>Initiate call';
+      } else {
+        agentBtn.className = idleCls;
+        humanBtn.className = activeCls;
+        agentBtn.innerHTML = '<i class="fas fa-robot text-[10px] mr-1"></i>AI Agent';
+        humanBtn.innerHTML = '<i class="fas fa-user text-[10px] mr-1"></i>Human (Me)';
+        taskWrap.classList.add('hidden');
+        hint.textContent = 'You will speak through your browser. Mic permission required.';
+        initBtn.innerHTML = '<i class="fas fa-headset mr-2"></i>Call from browser';
+      }
+    }
+
+    let twilioDevice = null;
+    let activeCall = null;
+    let callTimerInterval = null;
+    let callStartTime = null;
+    let isMuted = false;
+
+    async function ensureTwilioDevice() {
+      if (twilioDevice && twilioDevice.state === 'registered') return twilioDevice;
+      const tokenRes = await fetch(`${API_BASE}/api/twilio-token`, { credentials: 'include' });
+      if (!tokenRes.ok) {
+        const err = await tokenRes.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to fetch Twilio token');
+      }
+      const { token } = await tokenRes.json();
+      twilioDevice = new Twilio.Device(token, { codecPreferences: ['opus', 'pcmu'] });
+      await twilioDevice.register();
+      return twilioDevice;
+    }
+
+    function showInCallUI(targetNumber, brandLabel) {
+      document.getElementById('incall-panel').classList.remove('hidden');
+      document.getElementById('initiate-call-btn').classList.add('hidden');
+      document.getElementById('incall-target').textContent = `Calling ${targetNumber} as ${brandLabel}`;
+      document.getElementById('incall-status').textContent = 'Connecting…';
+      document.getElementById('incall-timer').textContent = '00:00';
+    }
+    function hideInCallUI() {
+      document.getElementById('incall-panel').classList.add('hidden');
+      document.getElementById('initiate-call-btn').classList.remove('hidden');
+      if (callTimerInterval) { clearInterval(callTimerInterval); callTimerInterval = null; }
+      activeCall = null;
+      isMuted = false;
+      const muteBtn = document.getElementById('mute-btn');
+      if (muteBtn) muteBtn.innerHTML = '<i class="fas fa-microphone mr-1"></i>Mute';
+    }
+    function startCallTimer() {
+      callStartTime = Date.now();
+      callTimerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+        const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const ss = String(elapsed % 60).padStart(2, '0');
+        document.getElementById('incall-timer').textContent = `${mm}:${ss}`;
+      }, 500);
+    }
+    function toggleMute() {
+      if (!activeCall) return;
+      isMuted = !isMuted;
+      activeCall.mute(isMuted);
+      const btn = document.getElementById('mute-btn');
+      btn.innerHTML = isMuted ? '<i class="fas fa-microphone-slash mr-1"></i>Unmute' : '<i class="fas fa-microphone mr-1"></i>Mute';
+    }
+    function hangupCall() { if (activeCall) activeCall.disconnect(); }
+
+    async function placeHumanCall(phone, brand, brandLabel) {
+      try {
+        showToast('Requesting mic access…', 'info');
+        await ensureTwilioDevice();
+        showInCallUI(phone, brandLabel);
+        const call = await twilioDevice.connect({ params: { targetNumber: phone, callerIdNumber: brand } });
+        activeCall = call;
+        call.on('accept',     () => { document.getElementById('incall-status').textContent = 'Connected'; startCallTimer(); });
+        call.on('disconnect', () => { document.getElementById('incall-status').textContent = 'Ended'; setTimeout(() => hideInCallUI(), 1200); showToast('Call ended', 'info'); });
+        call.on('cancel',     () => { hideInCallUI(); showToast('Call cancelled', 'info'); });
+        call.on('reject',     () => { hideInCallUI(); showToast('Call rejected', 'error'); });
+        call.on('error',      (err) => { console.error(err); showToast('Call error: ' + (err.message || 'unknown'), 'error'); hideInCallUI(); });
+      } catch (err) {
+        showToast(err.message || 'Could not start browser call', 'error');
+        hideInCallUI();
+      }
+    }
+
+    async function makeCall() {
+      const rawPhone = document.getElementById('call-phone').value.trim();
+      const brand    = document.getElementById('call-brand').value;
+      const task     = document.getElementById('call-task').value;
+      const brandLabel = document.getElementById('call-brand').selectedOptions[0]?.textContent || brand;
+
+      if (!rawPhone) { showToast('Please enter a phone number', 'error'); return; }
+      const phone = normalizePhone(rawPhone);
+      if (!/^\+[1-9]\d{6,14}$/.test(phone)) {
+        showToast('Invalid phone number. Enter a 10-digit US number or full international number with country code.', 'error');
+        return;
+      }
+      if (phone === brand) {
+        showToast("Cannot call the brand's own number.", 'error');
+        return;
+      }
+
+      if (callerMode === 'human') { await placeHumanCall(phone, brand, brandLabel); return; }
+
+      const btn = document.getElementById('initiate-call-btn');
+      if (btn) { btn.disabled = true; btn.classList.add('opacity-50'); }
+      showToast('Initiating AI call…', 'info');
+      try {
+        const response = await fetch(`${API_BASE}/api/call`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ phone, brand, task })
+        });
+        const data = await response.json();
+        if (data.success) {
+          showToast(`Call initiated to ${phone} (${data.agent || 'Sevyn'})`, 'success');
+          document.getElementById('call-phone').value = '';
+          document.getElementById('call-task').value  = '';
+          setTimeout(refreshData, 5000);
+        } else {
+          showToast(data.error || 'Failed to initiate call', 'error');
+        }
+      } catch (error) {
+        showToast('Error connecting to server: ' + error.message, 'error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.classList.remove('opacity-50'); }
+      }
+    }
+
+    let pendingEnhancedMessage = null;
+    async function handleSMSSend() {
+      const phone = document.getElementById('sms-phone').value;
+      const message = document.getElementById('sms-message').value;
+      const useAI = document.getElementById('sms-ai').checked;
+      const from = document.getElementById('sms-brand').value;
+      if (!phone || !message) { showToast('Please enter phone number and message', 'error'); return; }
+      if (useAI) {
+        const btn = document.getElementById('sms-send-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Enhancing…';
+        try {
+          const response = await fetch(`${API_BASE}/api/sms/preview`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message, from })
+          });
+          const data = await response.json();
+          if (data.success) {
+            pendingEnhancedMessage = data.enhanced;
+            document.getElementById('sms-preview-text').textContent = data.enhanced;
+            const el = document.getElementById('preview-char-count');
+            el.textContent = `${data.enhanced.length}/160`;
+            el.className = data.enhanced.length > 160 ? 'text-xs text-rose-400 font-mono' : 'text-xs text-gray-500 font-mono';
+            document.getElementById('sms-preview-area').classList.remove('hidden');
+            btn.classList.add('hidden');
+          } else { showToast(data.error || 'Failed to enhance message', 'error'); }
+        } catch (error) { showToast('Error connecting to server', 'error'); }
+        finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Send SMS'; }
+      } else { sendSMS(message); }
+    }
+
+    function acceptPreview() { if (pendingEnhancedMessage) { sendSMS(pendingEnhancedMessage); cancelPreview(); } }
+    function editPreview() {
+      if (pendingEnhancedMessage) {
+        document.getElementById('sms-message').value = pendingEnhancedMessage;
+        document.getElementById('char-count').textContent = `${pendingEnhancedMessage.length}/160`;
+        document.getElementById('sms-ai').checked = false;
+        cancelPreview();
+        document.getElementById('sms-message').focus();
+        showToast('Enhanced message copied to editor.', 'info');
+      }
+    }
+    function cancelPreview() {
+      pendingEnhancedMessage = null;
+      document.getElementById('sms-preview-area').classList.add('hidden');
+      document.getElementById('sms-send-btn').classList.remove('hidden');
+    }
+
+    async function sendSMS(finalMessage) {
+      const phone = document.getElementById('sms-phone').value;
+      const from  = document.getElementById('sms-brand').value;
+      if (!phone || !finalMessage) { showToast('Please enter phone number and message', 'error'); return; }
+      showToast('Sending SMS…', 'info');
+      try {
+        const response = await fetch(`${API_BASE}/send`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: phone, message: finalMessage, useAI: false, from })
+        });
+        const data = await response.json();
+        if (data.success) {
+          const statusMsg = data.status === 'delivered' ? 'SMS delivered!' : data.status === 'sent' ? 'SMS sent!' : 'SMS sent successfully!';
+          showToast(statusMsg, 'success');
+          document.getElementById('sms-phone').value = '';
+          document.getElementById('sms-message').value = '';
+          document.getElementById('char-count').textContent = '0/160';
+          setTimeout(refreshData, 2000);
+        } else { showToast(data.error || 'Failed to send SMS', 'error'); }
+      } catch (error) { showToast('Error connecting to server', 'error'); }
+    }
+
+    async function viewCall(callId) {
+      try {
+        const response = await fetch(`${API_BASE}/api/call/${callId}`);
+        const call = await response.json();
+        const isOut = call.direction === 'outbound';
+        const dirBadge = isOut
+          ? '<span class="text-xs px-2 py-0.5 rounded-full dir-out"><i class="fas fa-arrow-up text-[9px] mr-1"></i>Outbound</span>'
+          : '<span class="text-xs px-2 py-0.5 rounded-full dir-in"><i class="fas fa-arrow-down text-[9px] mr-1"></i>Inbound</span>';
+
+        document.getElementById('modal-content').innerHTML = `
+          <div class="space-y-5">
+            <div class="flex items-center gap-2 flex-wrap">
+              ${dirBadge}
+              <span class="text-xs px-2 py-0.5 rounded-full ${brandClass(call.brand)}">${call.brand || 'Unknown'}</span>
+              <span class="text-xs text-gray-500">${formatTime(call.timestamp)}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-ink-700/50 border border-soft rounded-xl p-3">
+                <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">${isOut ? 'Called' : 'Caller'}</p>
+                <p class="text-sm font-medium">${call.caller_name || 'Unknown'}</p>
+                <p class="text-xs text-gray-400 font-mono mt-0.5">${formatPhone(call.caller_phone)}</p>
+              </div>
+              <div class="bg-ink-700/50 border border-soft rounded-xl p-3">
+                <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Brand</p>
+                <p class="text-sm font-medium">${call.brand || '—'}</p>
+              </div>
+              <div class="bg-ink-700/50 border border-soft rounded-xl p-3">
+                <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Duration</p>
+                <p class="text-sm font-medium font-mono">${call.call_duration_min || '—'} min</p>
+              </div>
+              <div class="bg-ink-700/50 border border-soft rounded-xl p-3">
+                <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Status</p>
+                <p class="text-sm font-medium">${call.follow_up_needed ? '<span class="text-amber-400"><i class="fas fa-bell text-xs mr-1"></i>Follow-up needed</span>' : '<span class="text-brand-400"><i class="fas fa-check-circle text-xs mr-1"></i>Complete</span>'}</p>
+              </div>
+              ${call.caller_type && call.caller_type !== 'unknown' ? `
+              <div class="bg-ink-700/50 border border-soft rounded-xl p-3">
+                <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Type</p>
+                <p class="text-sm font-medium">${call.caller_type === 'new_lead' ? '<span class="text-violet-400">New Lead</span>' : call.caller_type === 'existing_client' ? '<span class="text-blue-400">Existing Client</span>' : call.caller_type}</p>
+              </div>` : ''}
+              ${call.inquiry_topic ? `
+              <div class="bg-ink-700/50 border border-soft rounded-xl p-3">
+                <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Topic</p>
+                <p class="text-sm font-medium">${call.inquiry_topic}</p>
+              </div>` : ''}
+            </div>
+            ${call.summary ? `
+              <div class="bg-ink-700/50 border border-soft rounded-xl p-4">
+                <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-2">Summary</p>
+                <p class="text-sm text-gray-300 leading-relaxed">${call.summary}</p>
+              </div>` : ''}
+            ${call.transcript ? `
+              <div class="bg-ink-700/50 border border-soft rounded-xl p-4">
+                <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-2">Transcript</p>
+                <div class="text-xs text-gray-300 whitespace-pre-wrap leading-relaxed bg-ink-900 rounded-lg p-3 font-mono max-h-60 overflow-y-auto scrollbar-thin">${call.transcript}</div>
+              </div>` : ''}
+            ${call.recording_url ? `
+              <div class="bg-ink-700/50 border border-soft rounded-xl p-4">
+                <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-2">Recording</p>
+                <audio controls class="w-full" src="${call.recording_url}"></audio>
+              </div>` : ''}
+            <div class="flex gap-2">
+              <button onclick="callBack('${call.caller_phone}')" class="flex-1 bg-brand-500 hover:bg-brand-400 text-[#0B1C3A] rounded-xl px-4 py-2 text-sm font-semibold transition">
+                <i class="fas fa-phone mr-2"></i>${isOut ? 'Call again' : 'Call back'}
+              </button>
+              <button onclick="sendFollowUp('${call.caller_phone}')" class="flex-1 bg-ink-700 hover:bg-ink-600 border border-soft text-white rounded-xl px-4 py-2 text-sm font-semibold transition">
+                <i class="fas fa-sms mr-2"></i>Send SMS
+              </button>
+            </div>
+          </div>
+        `;
+        document.getElementById('call-modal').classList.remove('hidden');
+        document.getElementById('call-modal').classList.add('flex');
+      } catch (error) { showToast('Failed to load call details', 'error'); }
+    }
+
+    function closeModal() {
+      document.getElementById('call-modal').classList.add('hidden');
+      document.getElementById('call-modal').classList.remove('flex');
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const colors = {
+        success: 'bg-brand-500/15 border-brand-500/30 text-brand-400',
+        error:   'bg-rose-500/15 border-rose-500/30 text-rose-400',
+        info:    'bg-blue-500/15 border-blue-500/30 text-blue-400'
+      };
+      const icons = { success: 'check-circle', error: 'exclamation-circle', info: 'info-circle' };
+      const toast = document.createElement('div');
+      toast.className = `${colors[type]} border rounded-xl px-4 py-2.5 flex items-center gap-2 text-sm font-medium shadow-xl transform translate-x-full transition-transform duration-300`;
+      toast.innerHTML = `<i class="fas fa-${icons[type]} text-xs"></i><span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => toast.classList.remove('translate-x-full'), 10);
+      setTimeout(() => { toast.classList.add('translate-x-full'); setTimeout(() => toast.remove(), 300); }, 4000);
+    }
+
+    function brandClass(brand) {
+      if (!brand) return 'brand-sevyn';
+      const key = brand.toLowerCase().replace(/[\s_]/g, '-');
+      if (key.includes('ssv') || key.includes('sherrod')) return 'brand-ssv';
+      if (key.includes('aventus')) return 'brand-aventus';
+      if (key.includes('o1d') || key.includes('match')) return 'brand-o1dmatch';
+      if (key.includes('igta')) return 'brand-igta';
+      if (key.includes('dc') || key.includes('federal')) return 'brand-dcfederal';
+      if (key.includes('sevyn')) return 'brand-sevyn';
+      return 'brand-sevyn';
+    }
+
+    function formatPhone(phone) {
+      if (!phone) return '—';
+      const cleaned = phone.replace(/\D/g, '');
+      if (cleaned.length === 11 && cleaned.startsWith('1')) return `+1 (${cleaned.slice(1,4)}) ${cleaned.slice(4,7)}-${cleaned.slice(7)}`;
+      return phone;
+    }
+    function formatTime(timestamp) {
+      if (!timestamp) return '—';
+      const d = new Date(timestamp);
+      const today = new Date();
+      const isToday = d.toDateString() === today.toDateString();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const isYesterday = d.toDateString() === yesterday.toDateString();
+      const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      if (isToday) return time;
+      if (isYesterday) return `Yesterday ${time}`;
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + time;
+    }
+    function formatTimeAgo(date) {
+      const seconds = Math.floor((new Date() - date) / 1000);
+      if (seconds < 60) return 'Just now';
+      if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+      if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+      return `${Math.floor(seconds / 86400)}d ago`;
+    }
+
+    function callBack(phone) {
+      closeModal();
+      document.getElementById('call-phone').value = phone;
+      switchTab('call');
+      document.getElementById('call-phone').focus();
+    }
+    function sendFollowUp(phone) {
+      closeModal();
+      document.getElementById('sms-phone').value = phone;
+      switchTab('sms');
+      document.getElementById('sms-message').focus();
+    }
+    function filterByBrand(brandId) {
+      window.location.href = `/calls?brand=${brandId}`;
+    }
+    async function viewAllCalls() { window.location.href = '/calls'; }
+    function setChartRange(range) { showToast(`Loading ${range} data…`, 'info'); }
+  </script>
+</body>
+</html>

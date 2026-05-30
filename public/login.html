@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>O1dMatch Calls</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:        #0B1C3A;
+      --surface:   #142A4F;
+      --surface-2: #1A3358;
+      --surface-3: #234070;
+      --border:    rgba(255,255,255,0.06);
+      --border-hi: rgba(255,255,255,0.10);
+      --text:      #e7ecf0;
+      --text-2:    #9ba4b1;
+      --text-3:    #5f6873;
+      --accent:    #C9A96E;
+      --accent-2:  #D9BC85;
+      --accent-glow: rgba(201,169,110,0.18);
+      --green:     #C9A96E;
+      --green-bg:  rgba(201,169,110,0.10);
+      --green-border: rgba(201,169,110,0.25);
+      --red:       #ef4444;
+      --red-bg:    rgba(239,68,68,0.10);
+      --red-border:rgba(239,68,68,0.25);
+      --radius:    12px;
+      --t:         0.18s ease;
+    }
+
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    .mono { font-family: 'SF Mono', ui-monospace, 'JetBrains Mono', Menlo, monospace; }
+
+    /* ── Split layout ── */
+    .split {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .split > section {
+      padding: 3rem 4rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+    .split .right {
+      border-left: 1px solid var(--border);
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* ── Brand ── */
+    .brand { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-mark {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 24px rgba(201,169,110,0.25);
+    }
+    .brand-mark svg { width: 22px; height: 22px; color: #0B1C3A; stroke-width: 2.5; }
+    .brand-mark .o1-mark {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-weight: 800;
+      font-size: 16px;
+      color: #0B1C3A;
+      letter-spacing: -0.5px;
+    }
+    .brand-name {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    /* ── Left hero ── */
+    .hero { max-width: 480px; margin-top: 6rem; }
+    .hero h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 1.25rem;
+    }
+    .hero p {
+      font-size: 0.9375rem;
+      line-height: 1.65;
+      color: var(--text-2);
+      margin-bottom: 2.5rem;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, max-content);
+      gap: 2.5rem;
+    }
+    .stat-num {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      line-height: 1;
+      margin-bottom: 0.375rem;
+    }
+    .stat-lbl {
+      font-size: 0.75rem;
+      color: var(--text-3);
+    }
+    .footer-tag {
+      font-size: 0.75rem;
+      color: var(--text-3);
+    }
+
+    /* ── Right pane ── */
+    .auth-wrap { width: 100%; max-width: 380px; }
+    .auth-head { margin-bottom: 2rem; }
+    .auth-head h2 {
+      font-size: 1.625rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+    .auth-head p {
+      font-size: 0.875rem;
+      color: var(--text-2);
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: inline-flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 1.5rem;
+    }
+    .tab-btn {
+      padding: 0.5rem 1rem;
+      font-family: inherit;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-3);
+      background: transparent;
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all var(--t);
+    }
+    .tab-btn:hover { color: var(--text-2); }
+    .tab-btn.active {
+      color: var(--text);
+      background: var(--surface-3);
+    }
+
+    /* ── Alert ── */
+    .alert {
+      margin-bottom: 1rem;
+      padding: 0.75rem 0.875rem;
+      border-radius: 10px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      line-height: 1.4;
+    }
+    .alert svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .alert.visible { display: flex; }
+    .alert.error { background: var(--red-bg); border: 1px solid var(--red-border); color: #fca5a5; }
+    .alert.error svg { color: var(--red); }
+    .alert.success { background: var(--green-bg); border: 1px solid var(--green-border); color: #86efac; }
+    .alert.success svg { color: var(--green); }
+
+    /* ── Form ── */
+    .form-panel { display: none; }
+    .form-panel.active { display: block; }
+    .form-inner { display: flex; flex-direction: column; gap: 1rem; }
+
+    .field label {
+      display: block;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    .input-wrap { position: relative; display: flex; align-items: center; }
+    .input {
+      width: 100%;
+      padding: 0.75rem 0.875rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.875rem;
+      transition: border-color var(--t), box-shadow var(--t);
+    }
+    .input::placeholder { color: var(--text-3); }
+    .input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .pw-toggle {
+      position: absolute;
+      right: 0.5rem;
+      padding: 0.375rem;
+      background: none;
+      border: none;
+      color: var(--text-3);
+      cursor: pointer;
+      border-radius: 8px;
+      transition: color var(--t), background var(--t);
+      display: flex;
+    }
+    .pw-toggle:hover { color: var(--text); background: var(--surface-3); }
+    .pw-toggle svg { width: 16px; height: 16px; }
+
+    .pw-strength { display: flex; gap: 4px; margin-top: 0.5rem; }
+    .pw-bar { flex: 1; height: 3px; border-radius: 3px; background: var(--surface-3); transition: background 0.3s; }
+    .pw-bar.active-1 { background: var(--red); }
+    .pw-bar.active-2 { background: #f59e0b; }
+    .pw-bar.active-3 { background: var(--green); }
+
+    /* ── Button ── */
+    .btn {
+      width: 100%;
+      padding: 0.8125rem;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius);
+      color: #0B1C3A;
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: background var(--t), opacity var(--t);
+      margin-top: 0.5rem;
+    }
+    .btn:hover:not(:disabled) { background: var(--accent-2); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn svg { width: 16px; height: 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin 0.8s linear infinite; }
+
+    .note {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-3);
+      margin-top: 0.5rem;
+    }
+    .switch-text {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.8125rem;
+      color: var(--text-3);
+    }
+    .switch-text a {
+      color: var(--accent-2);
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .switch-text a:hover { color: var(--accent); }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .split { grid-template-columns: 1fr; }
+      .split > section { padding: 2rem 1.5rem; }
+      .split .right { border-left: none; border-top: 1px solid var(--border); }
+      .hero { margin-top: 2rem; }
+      .hero h1 { font-size: 1.875rem; }
+      .stats { gap: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="split">
+
+    <!-- LEFT — brand + hero -->
+    <section class="left">
+      <div class="brand">
+        <div class="brand-mark">
+          <span class="o1-mark">O1</span>
+        </div>
+        <div class="brand-name">O1dMatch Calls</div>
+      </div>
+
+      <div class="hero">
+        <h1>Every O-1 call. Tracked, transcribed, routed.</h1>
+        <p>Adriana picks up every inbound call to O1dMatch, qualifies the lead, logs the transcript, and pushes the right follow-up into your sheets. Sevyn handles sales-rep training calls. Both, in one place.</p>
+        <div class="stats">
+          <div>
+            <div class="stat-num mono">2</div>
+            <div class="stat-lbl">Agents live</div>
+          </div>
+          <div>
+            <div class="stat-num mono">24/7</div>
+            <div class="stat-lbl">Always answers</div>
+          </div>
+          <div>
+            <div class="stat-num mono">~30s</div>
+            <div class="stat-lbl">To full summary</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-tag">O1dMatch Calls &middot; v1.0 &middot; Powered by AI</div>
+    </section>
+
+    <!-- RIGHT — auth -->
+    <section class="right">
+      <div class="auth-wrap">
+
+        <div class="auth-head">
+          <h2 id="authTitle">Welcome back</h2>
+          <p id="authSubtitle">Sign in to access the dashboard</p>
+        </div>
+
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab-btn active" data-tab="signin">Sign In</button>
+          <button type="button" class="tab-btn" data-tab="signup">Sign Up</button>
+        </div>
+
+        <div class="alert" id="alert">
+          <svg id="alertIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="alertMsg"></span>
+        </div>
+
+        <!-- Sign In -->
+        <div class="form-panel active" id="signinPanel">
+          <form class="form-inner" id="signinForm" novalidate>
+            <div class="field">
+              <label for="siEmail">Email</label>
+              <div class="input-wrap">
+                <input class="input" type="email" id="siEmail" placeholder="you@company.com" required autocomplete="email">
+              </div>
+            </div>
+            <div class="field">
+              <label for="siPass">Password</label>
+              <div class="input-wrap">
+                <input class="input" type="password" id="siPass" placeholder="Enter your password" required autocomplete="current-password">
+                <button type="button" class="pw-toggle" data-target="siPass" aria-label="Toggle password">
+                  <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="eye-closed" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>
+                </button>
+              </div>
+            </div>
+            <button type="submit" class="btn" id="siBtn"><span>Sign In</span></button>
+          </form>
+          <div class="switch-text">Don't have an account? <a id="goSignup">Create one</a></div>
+        </div>
+
+        <!-- Sign Up -->
+        <div class="form-panel" id="signupPanel">
+          <form class="form-inner" id="signupForm" novalidate>
+            <div class="field">
+              <label for="suName">Full name</label>
+              <div class="input-wrap">
+                <input class="input" type="text" id="suName" placeholder="Your full name" required autocomplete="name">
+              </div>
+            </div>
+            <div class="field">
+              <label for="suEmail">Email</label>
+              <div class="input-wrap">
+                <input class="input" type="email" id="suEmail" placeholder="you@company.com" required autocomplete="email">
+              </div>
+            </div>
+            <div class="field">
+              <label for="suPass">Password</label>
+              <div class="input-wrap">
+                <input class="input" type="password" id="suPass" placeholder="Min 6 characters" required minlength="6" autocomplete="new-password">
+                <button type="button" class="pw-toggle" data-target="suPass" aria-label="Toggle password">
+                  <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="eye-closed" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>
+                </button>
+              </div>
+              <div class="pw-strength" id="pwStrength">
+                <div class="pw-bar" id="bar1"></div>
+                <div class="pw-bar" id="bar2"></div>
+                <div class="pw-bar" id="bar3"></div>
+              </div>
+            </div>
+            <button type="submit" class="btn" id="suBtn"><span>Create account</span></button>
+            <div class="note">New accounts require admin approval</div>
+          </form>
+          <div class="switch-text">Already have an account? <a id="goSignin">Sign in</a></div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    (function () {
+      var tabBtns     = document.querySelectorAll('.tab-btn');
+      var signinPanel = document.getElementById('signinPanel');
+      var signupPanel = document.getElementById('signupPanel');
+      var signinForm  = document.getElementById('signinForm');
+      var signupForm  = document.getElementById('signupForm');
+      var alertEl     = document.getElementById('alert');
+      var alertMsg    = document.getElementById('alertMsg');
+      var alertIcon   = document.getElementById('alertIcon');
+      var goSignup    = document.getElementById('goSignup');
+      var goSignin    = document.getElementById('goSignin');
+      var authTitle   = document.getElementById('authTitle');
+      var authSub     = document.getElementById('authSubtitle');
+      var suPass      = document.getElementById('suPass');
+      var bars        = [document.getElementById('bar1'), document.getElementById('bar2'), document.getElementById('bar3')];
+
+      function switchTo(tab) {
+        tabBtns.forEach(function (b) { b.classList.toggle('active', b.dataset.tab === tab); });
+        signinPanel.classList.toggle('active', tab === 'signin');
+        signupPanel.classList.toggle('active', tab === 'signup');
+        if (tab === 'signin') {
+          authTitle.textContent = 'Welcome back';
+          authSub.textContent = 'Sign in to access the dashboard';
+        } else {
+          authTitle.textContent = 'Create your account';
+          authSub.textContent = 'Get access to O1dMatch Calls';
+        }
+        hideAlert();
+      }
+      tabBtns.forEach(function (btn) { btn.addEventListener('click', function () { switchTo(btn.dataset.tab); }); });
+      goSignup.addEventListener('click', function () { switchTo('signup'); });
+      goSignin.addEventListener('click', function () { switchTo('signin'); });
+
+      function showAlert(msg, type) {
+        alertMsg.textContent = msg;
+        alertEl.className = 'alert visible ' + type;
+        if (type === 'success') {
+          alertIcon.innerHTML = '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>';
+        } else {
+          alertIcon.innerHTML = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
+        }
+      }
+      function hideAlert() { alertEl.className = 'alert'; }
+
+      document.querySelectorAll('.pw-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var input = document.getElementById(btn.dataset.target);
+          var open = btn.querySelector('.eye-open');
+          var closed = btn.querySelector('.eye-closed');
+          if (input.type === 'password') { input.type = 'text'; open.style.display = 'none'; closed.style.display = 'block'; }
+          else { input.type = 'password'; open.style.display = 'block'; closed.style.display = 'none'; }
+        });
+      });
+
+      suPass.addEventListener('input', function () {
+        var v = suPass.value;
+        var score = 0;
+        if (v.length >= 6) score++;
+        if (/[A-Z]/.test(v) && /[0-9]/.test(v)) score++;
+        if (v.length >= 10 && /[^a-zA-Z0-9]/.test(v)) score++;
+        bars.forEach(function (bar, i) { bar.className = 'pw-bar'; if (i < score) bar.classList.add('active-' + score); });
+      });
+
+      var spinnerSVG = '<svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
+      function setLoading(btn, loading) {
+        if (loading) { btn._origHTML = btn.innerHTML; btn.innerHTML = spinnerSVG + '<span>Please wait...</span>'; btn.disabled = true; }
+        else { btn.innerHTML = btn._origHTML; btn.disabled = false; }
+      }
+
+      signinForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var btn = document.getElementById('siBtn');
+        var email = document.getElementById('siEmail').value.trim();
+        var password = document.getElementById('siPass').value;
+        if (!email || !password) { showAlert('Please fill in all fields.', 'error'); return; }
+        setLoading(btn, true);
+        fetch('/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, password: password }) })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (data.success) { showAlert('Welcome back! Redirecting...', 'success'); setTimeout(function () { window.location.href = '/'; }, 800); }
+            else { showAlert(data.error || 'Login failed. Please try again.', 'error'); setLoading(btn, false); }
+          })
+          .catch(function () { showAlert('Connection error. Please check your network.', 'error'); setLoading(btn, false); });
+      });
+
+      signupForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var btn = document.getElementById('suBtn');
+        var name = document.getElementById('suName').value.trim();
+        var email = document.getElementById('suEmail').value.trim();
+        var password = document.getElementById('suPass').value;
+        if (!name || !email || !password) { showAlert('Please fill in all fields.', 'error'); return; }
+        if (password.length < 6) { showAlert('Password must be at least 6 characters.', 'error'); return; }
+        setLoading(btn, true);
+        fetch('/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name, email: email, password: password }) })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (data.success) {
+              showAlert(data.message || 'Account created!', 'success');
+              if (data.role === 'admin') { setTimeout(function () { window.location.href = '/'; }, 1500); }
+              else { btn.innerHTML = '<span>Account Created</span>'; }
+            } else { showAlert(data.error || 'Signup failed. Please try again.', 'error'); setLoading(btn, false); }
+          })
+          .catch(function () { showAlert('Connection error. Please check your network.', 'error'); setLoading(btn, false); });
+      });
+
+      fetch('/auth/status').then(function (r) { return r.json(); }).then(function (data) { if (data.authenticated) window.location.href = '/'; }).catch(function () {});
+    })();
+  </script>
+</body>
+</html>

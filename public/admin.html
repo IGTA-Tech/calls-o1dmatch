@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — O1dMatch Calls</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            ink: { 900:'#0B1C3A', 800:'#142A4F', 700:'#1A3358', 600:'#234070', 500:'#222933' },
+            brand: { 500:'#C9A96E', 400:'#D9BC85', 300:'#E5CFA0' }
+          },
+          fontFamily: {
+            sans: ['Inter','-apple-system','BlinkMacSystemFont','sans-serif'],
+            mono: ['"SF Mono"','ui-monospace','JetBrains Mono','Menlo','monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <script>
+    const savedTheme = localStorage.getItem('adriana-theme');
+    if (savedTheme !== 'light') document.documentElement.classList.add('dark');
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .border-soft    { border-color: rgba(255,255,255,0.06); }
+    .border-soft-hi { border-color: rgba(255,255,255,0.10); }
+  </style>
+</head>
+<body class="bg-ink-900 text-gray-100 min-h-screen">
+
+  <!-- Top bar -->
+  <header class="border-b border-soft">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-3 sm:gap-8 min-w-0">
+        <a href="/" class="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 bg-brand-500 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20">
+            <span class="text-[#0B1C3A] font-extrabold text-xs sm:text-sm tracking-tight">O1</span>
+          </div>
+          <span class="font-bold text-sm sm:text-base">O1dMatch Calls</span>
+        </a>
+        <nav class="flex items-center gap-0.5 sm:gap-1 text-xs sm:text-sm">
+          <a href="/" class="px-2 sm:px-3 py-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-ink-700 transition whitespace-nowrap">
+            <i class="fas fa-gauge text-xs sm:mr-1.5"></i><span class="hidden sm:inline">Dashboard</span>
+          </a>
+          <a href="/calls" class="px-2 sm:px-3 py-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-ink-700 transition whitespace-nowrap">
+            <i class="fas fa-clock-rotate-left text-xs sm:mr-1.5"></i><span class="hidden sm:inline">History</span>
+          </a>
+          <a href="/admin.html" class="px-2 sm:px-3 py-1.5 rounded-lg text-white bg-ink-700 whitespace-nowrap">
+            <i class="fas fa-users-gear text-xs sm:mr-1.5"></i><span class="hidden sm:inline">Admin</span>
+          </a>
+        </nav>
+      </div>
+      <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+        <button onclick="toggleTheme()" class="w-8 h-8 rounded-lg hover:bg-ink-700 flex items-center justify-center text-gray-400 hover:text-white transition" title="Toggle theme">
+          <i id="theme-icon" class="fas fa-moon text-xs"></i>
+        </button>
+        <a href="/auth/logout" class="text-xs sm:text-sm text-gray-400 hover:text-white transition">
+          <i class="fas fa-arrow-right-from-bracket text-xs"></i><span class="hidden sm:inline ml-1.5">Sign out</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+
+    <!-- Page heading -->
+    <div class="mb-8 flex items-start justify-between flex-wrap gap-4">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Admin panel</h1>
+        <p class="text-gray-500 text-sm mt-1">User access management</p>
+      </div>
+      <button onclick="loadUsers()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-ink-700 hover:bg-ink-600 border border-soft text-sm font-medium transition">
+        <i class="fas fa-rotate text-xs"></i>Refresh
+      </button>
+    </div>
+
+    <!-- Stat tiles -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+      <div class="bg-ink-800 border border-soft rounded-2xl p-4 sm:p-5">
+        <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">
+          <i class="fas fa-users text-blue-400"></i>Total users
+        </div>
+        <div id="stat-total" class="text-3xl sm:text-4xl font-bold font-mono text-white">0</div>
+      </div>
+      <div class="bg-ink-800 border border-soft rounded-2xl p-4 sm:p-5">
+        <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">
+          <i class="fas fa-clock text-amber-400"></i>Pending
+        </div>
+        <div id="stat-pending" class="text-3xl sm:text-4xl font-bold font-mono text-amber-400">0</div>
+      </div>
+      <div class="bg-ink-800 border border-soft rounded-2xl p-4 sm:p-5">
+        <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">
+          <i class="fas fa-circle-check text-brand-400"></i>Approved
+        </div>
+        <div id="stat-approved" class="text-3xl sm:text-4xl font-bold font-mono text-brand-400">0</div>
+      </div>
+      <div class="bg-ink-800 border border-soft rounded-2xl p-4 sm:p-5">
+        <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">
+          <i class="fas fa-user-shield text-violet-400"></i>Admins
+        </div>
+        <div id="stat-admins" class="text-3xl sm:text-4xl font-bold font-mono text-violet-400">0</div>
+      </div>
+    </div>
+
+    <!-- Pending approvals (hidden when empty) -->
+    <div id="pending-section" class="bg-ink-800 border border-soft rounded-2xl overflow-hidden mb-8 hidden">
+      <div class="px-5 py-4 border-b border-soft flex items-center gap-3">
+        <span class="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
+        <h2 class="text-sm font-semibold">Pending approvals</h2>
+        <span id="pending-count" class="text-xs bg-amber-500/15 text-amber-400 px-2 py-0.5 rounded-full font-mono">0</span>
+      </div>
+      <div id="pending-list"></div>
+    </div>
+
+    <!-- All users table -->
+    <div class="bg-ink-800 border border-soft rounded-2xl overflow-hidden">
+      <div class="px-5 py-4 border-b border-soft flex items-center justify-between">
+        <h2 class="text-sm font-semibold flex items-center gap-2">
+          <i class="fas fa-users text-violet-400 text-xs"></i>All users
+        </h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr class="text-left border-b border-soft">
+              <th class="px-3 sm:px-5 py-3 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">User</th>
+              <th class="hidden sm:table-cell px-5 py-3 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Role</th>
+              <th class="hidden md:table-cell px-5 py-3 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Joined</th>
+              <th class="hidden lg:table-cell px-5 py-3 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Approved</th>
+              <th class="px-3 sm:px-5 py-3 text-[10px] uppercase tracking-wider text-gray-500 font-semibold text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-table">
+            <tr>
+              <td colspan="5" class="px-5 py-12 text-center text-gray-500">
+                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                <p class="text-sm">Loading users…</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Toast container -->
+  <div id="toast-container" class="fixed bottom-6 right-6 space-y-2 z-50"></div>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const icon = document.getElementById('theme-icon');
+      html.classList.toggle('dark');
+      const isDark = html.classList.contains('dark');
+      icon.classList.replace(isDark ? 'fa-sun' : 'fa-moon', isDark ? 'fa-moon' : 'fa-sun');
+      localStorage.setItem('adriana-theme', isDark ? 'dark' : 'light');
+    }
+    (function() {
+      const isDark = document.documentElement.classList.contains('dark');
+      const icon = document.getElementById('theme-icon');
+      if (icon) icon.className = 'fas ' + (isDark ? 'fa-moon' : 'fa-sun') + ' text-xs';
+    })();
+
+    async function checkAuth() {
+      try {
+        const res = await fetch('/auth/status');
+        const data = await res.json();
+        if (!data.authenticated || data.user?.role !== 'admin') {
+          window.location.href = '/dashboard';
+          return false;
+        }
+        return true;
+      } catch {
+        window.location.href = '/login';
+        return false;
+      }
+    }
+
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/admin/users', { headers: { 'Accept': 'application/json' } });
+        if (res.status === 401 || res.status === 403 || res.redirected) {
+          window.location.href = res.status === 401 ? '/login' : '/dashboard';
+          return;
+        }
+        const data = await res.json();
+        const users = data.users || [];
+
+        document.getElementById('stat-total').textContent = users.length;
+        document.getElementById('stat-pending').textContent = users.filter(u => u.role === 'pending').length;
+        document.getElementById('stat-approved').textContent = users.filter(u => u.role === 'approved').length;
+        document.getElementById('stat-admins').textContent = users.filter(u => u.role === 'admin').length;
+
+        const pending = users.filter(u => u.role === 'pending');
+        const pendingSection = document.getElementById('pending-section');
+        const pendingList = document.getElementById('pending-list');
+        const pendingCount = document.getElementById('pending-count');
+        if (pending.length > 0) {
+          pendingSection.classList.remove('hidden');
+          pendingCount.textContent = pending.length;
+          pendingList.innerHTML = pending.map(user => `
+            <div class="px-5 py-4 flex items-center justify-between border-b border-soft last:border-b-0">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center">
+                  <i class="fas fa-user-clock text-amber-400 text-sm"></i>
+                </div>
+                <div>
+                  <p class="text-sm font-semibold">${escapeHtml(user.name || 'No name')}</p>
+                  <p class="text-xs text-gray-500">${escapeHtml(user.email)}</p>
+                  <p class="text-[11px] text-gray-600 mt-0.5">Signed up ${formatDate(user.created_at)}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <button data-action-btn onclick="approveUser('${user.id}')" class="px-3 py-1.5 bg-brand-500 hover:bg-brand-400 text-[#0B1C3A] text-xs font-semibold rounded-lg transition">
+                  <i class="fas fa-check mr-1"></i>Approve
+                </button>
+                <button data-action-btn onclick="rejectUser('${user.id}')" class="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold rounded-lg transition">
+                  <i class="fas fa-times mr-1"></i>Reject
+                </button>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          pendingSection.classList.add('hidden');
+        }
+
+        const tbody = document.getElementById('users-table');
+        if (users.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="px-5 py-12 text-center text-gray-500 text-sm">No users found</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = users.map(user => `
+          <tr class="border-b border-soft last:border-b-0 hover:bg-ink-700/40 transition">
+            <td class="px-3 sm:px-5 py-3 min-w-0">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 ${getRoleColor(user.role)} rounded-xl flex items-center justify-center shrink-0">
+                  <i class="fas ${getRoleIcon(user.role)} text-sm"></i>
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-medium truncate">${escapeHtml(user.name || 'No name')}</p>
+                  <p class="text-xs text-gray-500 truncate">${escapeHtml(user.email)}</p>
+                  <p class="sm:hidden mt-1"><span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-semibold ${getRoleBadge(user.role)}">${user.role}</span></p>
+                </div>
+              </div>
+            </td>
+            <td class="hidden sm:table-cell px-5 py-3">
+              <span class="text-[10px] uppercase tracking-wider px-2 py-1 rounded-full font-semibold ${getRoleBadge(user.role)}">${user.role}</span>
+            </td>
+            <td class="hidden md:table-cell px-5 py-3 text-xs text-gray-400">${formatDate(user.created_at)}</td>
+            <td class="hidden lg:table-cell px-5 py-3 text-xs text-gray-400">${user.approved_at ? formatDate(user.approved_at) : '—'}</td>
+            <td class="px-3 sm:px-5 py-3">
+              <div class="flex items-center gap-1 sm:gap-1.5 justify-end flex-wrap">${getActionButtons(user)}</div>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load users:', err);
+        showToast('Failed to load users', 'error');
+      }
+    }
+
+    function getActionButtons(user) {
+      if (user.role === 'admin') {
+        return `
+          <button data-action-btn onclick="demoteAdmin('${user.id}')" class="text-[11px] px-2.5 py-1 bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 rounded-md transition">
+            <i class="fas fa-arrow-down mr-1"></i>Revoke admin
+          </button>
+          <button data-action-btn onclick="rejectUser('${user.id}')" class="text-[11px] px-2.5 py-1 bg-rose-500/15 text-rose-400 hover:bg-rose-500/25 border border-rose-500/30 rounded-md transition">
+            <i class="fas fa-ban mr-1"></i>Remove
+          </button>`;
+      }
+      if (user.role === 'pending') {
+        return `
+          <button data-action-btn onclick="approveUser('${user.id}')" class="text-[11px] px-2.5 py-1 bg-brand-500/15 text-brand-400 hover:bg-brand-500/25 border border-brand-500/30 rounded-md transition">
+            <i class="fas fa-check mr-1"></i>Approve
+          </button>
+          <button data-action-btn onclick="rejectUser('${user.id}')" class="text-[11px] px-2.5 py-1 bg-rose-500/15 text-rose-400 hover:bg-rose-500/25 border border-rose-500/30 rounded-md transition">
+            <i class="fas fa-times mr-1"></i>Reject
+          </button>`;
+      }
+      if (user.role === 'approved') {
+        return `
+          <button data-action-btn onclick="makeAdmin('${user.id}')" class="text-[11px] px-2.5 py-1 bg-violet-500/15 text-violet-400 hover:bg-violet-500/25 border border-violet-500/30 rounded-md transition">
+            <i class="fas fa-crown mr-1"></i>Make admin
+          </button>
+          <button data-action-btn onclick="rejectUser('${user.id}')" class="text-[11px] px-2.5 py-1 bg-rose-500/15 text-rose-400 hover:bg-rose-500/25 border border-rose-500/30 rounded-md transition">
+            <i class="fas fa-ban mr-1"></i>Revoke
+          </button>`;
+      }
+      if (user.role === 'rejected') {
+        return `
+          <button data-action-btn onclick="approveUser('${user.id}')" class="text-[11px] px-2.5 py-1 bg-brand-500/15 text-brand-400 hover:bg-brand-500/25 border border-brand-500/30 rounded-md transition">
+            <i class="fas fa-rotate-left mr-1"></i>Re-approve
+          </button>`;
+      }
+      return '';
+    }
+
+    function getRoleColor(role) {
+      switch(role) {
+        case 'admin':    return 'bg-violet-500/20 text-violet-400';
+        case 'approved': return 'bg-brand-500/20 text-brand-400';
+        case 'pending':  return 'bg-amber-500/20 text-amber-400';
+        case 'rejected': return 'bg-rose-500/20 text-rose-400';
+        default:         return 'bg-gray-500/20 text-gray-400';
+      }
+    }
+    function getRoleIcon(role) {
+      switch(role) {
+        case 'admin':    return 'fa-user-shield';
+        case 'approved': return 'fa-user-check';
+        case 'pending':  return 'fa-user-clock';
+        case 'rejected': return 'fa-user-slash';
+        default:         return 'fa-user';
+      }
+    }
+    function getRoleBadge(role) {
+      switch(role) {
+        case 'admin':    return 'bg-violet-500/15 text-violet-400 border border-violet-500/30';
+        case 'approved': return 'bg-brand-500/15 text-brand-400 border border-brand-500/30';
+        case 'pending':  return 'bg-amber-500/15 text-amber-400 border border-amber-500/30';
+        case 'rejected': return 'bg-rose-500/15 text-rose-400 border border-rose-500/30';
+        default:         return 'bg-gray-500/15 text-gray-400 border border-gray-500/30';
+      }
+    }
+
+    function setButtonsLoading(loading) {
+      document.querySelectorAll('[data-action-btn]').forEach(btn => {
+        btn.disabled = loading;
+        if (loading) btn.classList.add('opacity-50', 'pointer-events-none');
+        else btn.classList.remove('opacity-50', 'pointer-events-none');
+      });
+    }
+
+    const API_HEADERS = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    async function adminApiCall(url, body) {
+      const res = await fetch(url, { method: 'POST', headers: API_HEADERS, body: JSON.stringify(body) });
+      if (res.redirected || !res.headers.get('content-type')?.includes('json')) {
+        window.location.href = '/login';
+        throw new Error('Session expired. Please log in again.');
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Server error ${res.status}`);
+      }
+      return await res.json();
+    }
+
+    async function approveUser(userId) {
+      setButtonsLoading(true);
+      try {
+        const data = await adminApiCall('/api/admin/approve', { userId });
+        if (data.success) { showToast('User approved', 'success'); await loadUsers(); }
+        else showToast('Failed to approve: ' + (data.error || 'Unknown error'), 'error');
+      } catch (err) { showToast('Error: ' + err.message, 'error'); }
+      finally { setButtonsLoading(false); }
+    }
+    async function rejectUser(userId) {
+      if (!confirm('Are you sure you want to reject/revoke this user?')) return;
+      setButtonsLoading(true);
+      try {
+        const data = await adminApiCall('/api/admin/reject', { userId });
+        if (data.success) { showToast('User rejected', 'success'); await loadUsers(); }
+        else showToast('Failed to reject: ' + (data.error || 'Unknown error'), 'error');
+      } catch (err) { showToast('Error: ' + err.message, 'error'); }
+      finally { setButtonsLoading(false); }
+    }
+    async function demoteAdmin(userId) {
+      if (!confirm('Revoke admin privileges? They will become a regular approved user.')) return;
+      setButtonsLoading(true);
+      try {
+        const data = await adminApiCall('/api/admin/demote', { userId });
+        if (data.success) { showToast('Admin privileges revoked', 'success'); await loadUsers(); }
+        else showToast('Failed to demote: ' + (data.error || 'Unknown error'), 'error');
+      } catch (err) { showToast('Error: ' + err.message, 'error'); }
+      finally { setButtonsLoading(false); }
+    }
+    async function makeAdmin(userId) {
+      if (!confirm('Promote this user to admin?')) return;
+      setButtonsLoading(true);
+      try {
+        const data = await adminApiCall('/api/admin/make-admin', { userId });
+        if (data.success) { showToast('User promoted to admin', 'success'); await loadUsers(); }
+        else showToast('Failed to promote: ' + (data.error || 'Unknown error'), 'error');
+      } catch (err) { showToast('Error: ' + err.message, 'error'); }
+      finally { setButtonsLoading(false); }
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const colors = {
+        success: 'bg-brand-500/15 border-brand-500/30 text-brand-400',
+        error:   'bg-rose-500/15 border-rose-500/30 text-rose-400',
+        info:    'bg-blue-500/15 border-blue-500/30 text-blue-400'
+      };
+      const icons = { success: 'check-circle', error: 'exclamation-circle', info: 'info-circle' };
+      const toast = document.createElement('div');
+      toast.className = `${colors[type]} border rounded-xl px-4 py-2.5 flex items-center gap-2 text-sm font-medium shadow-xl transform translate-x-full transition-transform duration-300`;
+      toast.innerHTML = `<i class="fas fa-${icons[type]} text-xs"></i><span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => toast.classList.remove('translate-x-full'), 10);
+      setTimeout(() => { toast.classList.add('translate-x-full'); setTimeout(() => toast.remove(), 300); }, 4000);
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '—';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const authed = await checkAuth();
+      if (authed) loadUsers();
+    });
+  </script>
+</body>
+</html>

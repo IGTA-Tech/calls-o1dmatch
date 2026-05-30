@@ -1,0 +1,86 @@
+{
+  "default": "english",
+  "languages": {
+    "english": {
+      "name": "English",
+      "voice_id": "4e1209ed-ef44-4ab8-aa6f-905d598df489",
+      "voice_name": "Colombiana",
+      "language_code": "en",
+      "greeting": "Hey, this is Sevyn, Sherrod's assistant. How can I help you?"
+    },
+    "spanish": {
+      "name": "Spanish",
+      "voice_id": "4e1209ed-ef44-4ab8-aa6f-905d598df489",
+      "voice_name": "Colombiana",
+      "language_code": "es",
+      "greeting": "Hola, soy Sevyn, la asistente de Sherrod. ¿En qué puedo ayudarte?"
+    },
+    "french": {
+      "name": "French",
+      "voice_id": "2cbb6983-abda-4488-9077-4d878e0f5e0e",
+      "voice_name": "Claire",
+      "language_code": "fr",
+      "greeting": "Bonjour, c'est Sevyn, l'assistante de Sherrod. Comment puis-je vous aider?"
+    },
+    "portuguese": {
+      "name": "Portuguese",
+      "voice_id": "4fc7b17e-2744-4992-a21e-a9a55b5e8d32",
+      "voice_name": "Brazilian Female",
+      "language_code": "pt",
+      "greeting": "Olá, sou Sevyn, assistente do Sherrod. Como posso ajudá-lo?"
+    },
+    "german": {
+      "name": "German",
+      "voice_id": "e3d3acf6-382d-4014-a34d-4bef0734aefa",
+      "voice_name": "Jana",
+      "language_code": "de",
+      "greeting": "Hallo, hier ist Sevyn, Sherrods Assistentin. Wie kann ich Ihnen helfen?"
+    },
+    "italian": {
+      "name": "Italian",
+      "voice_id": "684ee7f8-76da-44f7-86f4-664d04683b15",
+      "voice_name": "Giulia",
+      "language_code": "it",
+      "greeting": "Ciao, sono Sevyn, l'assistente di Sherrod. Come posso aiutarti?"
+    },
+    "japanese": {
+      "name": "Japanese",
+      "voice_id": "e0cf818b-540c-4ff9-8567-3d1770feafb3",
+      "voice_name": "Sayoko",
+      "language_code": "ja",
+      "greeting": "こんにちは、シェロッドのアシスタント、セブンです。ご用件をお伺いします。"
+    },
+    "chinese": {
+      "name": "Chinese (Mandarin)",
+      "voice_id": "0a992a20-0df9-4f86-88a4-5d20fa034f92",
+      "voice_name": "长乐",
+      "language_code": "zh",
+      "greeting": "你好，我是Sevyn，Sherrod的助理。有什么可以帮您的？"
+    },
+    "korean": {
+      "name": "Korean",
+      "voice_id": "fcaf4bf2-3ee0-4165-a000-d46c29ae9a8e",
+      "voice_name": "Korean AI",
+      "language_code": "ko",
+      "greeting": "안녕하세요, Sherrod의 비서 Sevyn입니다. 어떻게 도와드릴까요?"
+    },
+    "dutch": {
+      "name": "Dutch",
+      "voice_id": "a392e1d9-09f9-4075-b684-7b1bf1919d19",
+      "voice_name": "Janis",
+      "language_code": "nl",
+      "greeting": "Hallo, dit is Sevyn, Sherrod's assistent. Hoe kan ik u helpen?"
+    }
+  },
+  "detection_keywords": {
+    "spanish": ["español", "spanish", "habla español", "en español"],
+    "french": ["français", "french", "parlez français", "en français"],
+    "portuguese": ["português", "portuguese", "fala português"],
+    "german": ["deutsch", "german", "sprechen sie deutsch"],
+    "italian": ["italiano", "italian", "parla italiano"],
+    "japanese": ["日本語", "japanese", "nihongo"],
+    "chinese": ["中文", "chinese", "mandarin", "普通话"],
+    "korean": ["한국어", "korean"],
+    "dutch": ["nederlands", "dutch"]
+  }
+}

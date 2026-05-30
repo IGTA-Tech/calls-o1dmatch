@@ -1,0 +1,153 @@
+{
+  "contacts": [
+    {
+      "name": "Rollin Seward",
+      "nickname": "Dad",
+      "relationship": "Father / BD Partner",
+      "phone": "+16143307116",
+      "email": null,
+      "notes": "Sherrod's father. Business development partner. Based in Ohio.",
+      "added": "2026-02-06"
+    },
+    {
+      "name": "Sherrod Seward",
+      "nickname": "Boss",
+      "relationship": "Boss",
+      "phone": "+15617408303",
+      "email": "sherrod@sherrodsportsvisas.com",
+      "notes": "The boss. Immigration attorney. Charlotte, NC.",
+      "added": "2026-02-06"
+    },
+    {
+      "name": "Liam Seward",
+      "nickname": "Liam",
+      "relationship": "Son",
+      "phone": null,
+      "email": null,
+      "notes": "Sherrod's son, ~8 years old. School contact via ParentSquare.",
+      "added": "2026-02-06"
+    },
+    {
+      "name": "Gabriella Terceiro",
+      "nickname": "Gabriella",
+      "relationship": "Team - Updates/Comms",
+      "phone": "+19562249376",
+      "whatsapp": "+5521993058245",
+      "email": "gabriella@sherrodsportsvisas.com",
+      "notes": "Paralegal. Based in Brazil (Brasília time). Started Feb 3, 2026.",
+      "added": "2026-02-06"
+    },
+    {
+      "name": "Jonalyn",
+      "nickname": "Jonalyn",
+      "relationship": "Team - Talent Acquisition",
+      "phone": "+639120178991",
+      "whatsapp": "+15618795424",
+      "email": "jonalyn@sherrodsportsvisas.com",
+      "notes": "Talent acquisition. Based in Philippines. Extremely brief communication style.",
+      "added": "2026-02-06"
+    },
+    {
+      "name": "Ankit Giri",
+      "nickname": "Ankit",
+      "relationship": "Team - Case Handler",
+      "phone": null,
+      "email": "ankit@sherrodsportsvisas.com",
+      "notes": "Case handler. Highest email volume (201/30d). Primary case management.",
+      "added": "2026-02-06"
+    },
+    {
+      "name": "Bran Jabers",
+      "nickname": "Bran",
+      "relationship": "Team - Aventus BD",
+      "phone": null,
+      "email": "bran@aventusvisaagents.com",
+      "notes": "Business development for Aventus Visa Agents brand. Warm, professional style.",
+      "added": "2026-02-06"
+    },
+    {
+      "name": "Tino Mavunga",
+      "nickname": "Tino",
+      "relationship": "Team - Project Manager",
+      "phone": null,
+      "email": "tino@innovativeautomations.dev",
+      "notes": "Project manager/QA. Brief communication style. Time-based greetings.",
+      "added": "2026-02-06"
+    },
+    {
+      "name": "Yusuf Awodire",
+      "nickname": "Yusuf",
+      "relationship": "Team - Tech Dev",
+      "phone": null,
+      "email": "yusuf.awodire@innovativeautomations.dev",
+      "notes": "Tech developer. 42 emails/30d volume.",
+      "added": "2026-02-06"
+    },
+    {
+      "name": "Brittany",
+      "nickname": "Brittany",
+      "relationship": "Partner - Oak LG",
+      "phone": null,
+      "email": "brittany@oaklg.com",
+      "notes": "Oak LG partner. 59 emails/30d volume.",
+      "added": "2026-02-06"
+    },
+    {
+      "name": "Joshua",
+      "nickname": "Joshua",
+      "relationship": "Team - Sales",
+      "phone": null,
+      "email": null,
+      "notes": "Sales/Follow-up team member.",
+      "added": "2026-02-06"
+    },
+    {
+      "name": "Autumn",
+      "nickname": "Autumn",
+      "relationship": "O1dMatch - Investor Outreach",
+      "phone": null,
+      "email": null,
+      "notes": "Handles investor outreach for O1dMatch.",
+      "added": "2026-02-06"
+    },
+    {
+      "name": "Ken Johnson",
+      "nickname": "Ken",
+      "relationship": "Advisor - Investment",
+      "phone": null,
+      "email": null,
+      "notes": "Investment advisor for O1dMatch.",
+      "added": "2026-02-06"
+    },
+    {
+      "name": "Cassondra",
+      "nickname": "Cassondra",
+      "relationship": "Personal - Emergency Contact",
+      "phone": "+17046505837",
+      "email": null,
+      "address": "1602 Candlewood Ridge Lane, Matthews NC 28105",
+      "notes": "Emergency contact. Matthews, NC. Added per Sherrod request.",
+      "added": "2026-02-07"
+    }
+  ],
+  "quickRefs": {
+    "dad": "+16143307116",
+    "father": "+16143307116",
+    "rollin": "+16143307116",
+    "sherrod": "+15617408303",
+    "boss": "+15617408303",
+    "gabriella": "+19562249376",
+    "gabi": "+19562249376",
+    "jonalyn": "+639120178991",
+    "cassondra": "+17046505837"
+  },
+  "emailRefs": {
+    "ankit": "ankit@sherrodsportsvisas.com",
+    "gabriella": "gabriella@sherrodsportsvisas.com",
+    "jonalyn": "jonalyn@sherrodsportsvisas.com",
+    "bran": "bran@aventusvisaagents.com",
+    "tino": "tino@innovativeautomations.dev",
+    "yusuf": "yusuf.awodire@innovativeautomations.dev",
+    "brittany": "brittany@oaklg.com"
+  }
+}
