@@ -9,9 +9,10 @@
 require('dotenv').config();
 const { BRAND_CONFIGS, listAssistants, updateAssistant } = require('../voice/vapi-client');
 
-const WEBHOOK_URL = (process.env.RAILWAY_PUBLIC_DOMAIN
-  ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
-  : process.env.PUBLIC_URL || 'https://sevyn-sms-agent-production.up.railway.app')
+const WEBHOOK_URL = (process.env.BASE_URL
+  || process.env.PUBLIC_URL
+  || (process.env.RAILWAY_PUBLIC_DOMAIN && `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`)
+  || 'https://calls.o1dmatch.com')
   + '/vapi/webhook';
 
 (async () => {
