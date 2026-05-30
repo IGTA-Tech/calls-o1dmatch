@@ -741,7 +741,7 @@ app.post('/api/twilio-voice-twiml', (req, res) => {
   } else {
     // Fire a status callback when the dial finishes so we can log the call.
     // Twilio POSTs the brand callerId and dialed number back to us.
-    const base = process.env.PUBLIC_URL || 'https://sevyn-sms-agent-production.up.railway.app';
+    const base = process.env.BASE_URL || process.env.PUBLIC_URL || `https://${req.get('host')}`;
     const statusUrl = `${base}/api/twilio-call-status?brand=${encodeURIComponent(from)}&target=${encodeURIComponent(to)}`;
     const dialOpts = {
       callerId: from,
