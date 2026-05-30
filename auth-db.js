@@ -12,16 +12,25 @@ const { createClient } = require('@supabase/supabase-js');
 
 // Supabase config
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;                    // anon — for auth flows
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY     // service_role — bypasses RLS
+  || process.env.SUPABASE_KEY;                                    // fallback to anon if unset (legacy)
 
-// Auth client - used ONLY for auth operations (signIn, signUp, getUser)
+if (!process.env.SUPABASE_SERVICE_KEY) {
+  console.warn('⚠️  SUPABASE_SERVICE_KEY not set — dbClient falling back to anon key. RLS will block dashboard_users queries.');
+}
+
+// Auth client — anon key. Used ONLY for auth operations (signIn, signUp, getUser).
+// Anon key is required here because the auth flow needs to issue/refresh
+// user-scoped JWTs and Supabase Auth treats the anon key as the public entry.
 const authClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false }
 });
 
-// DB client - separate instance, never tainted by user sessions, always uses service_role
-// This bypasses RLS so we can always read/write dashboard_users
-const dbClient = createClient(SUPABASE_URL, SUPABASE_KEY, {
+// DB client — service_role key. Bypasses RLS so we can always read/write
+// dashboard_users without recursive policy loops. NEVER expose this client
+// or its key to the browser.
+const dbClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false }
 });
 
