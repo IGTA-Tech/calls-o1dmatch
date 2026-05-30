@@ -55,9 +55,9 @@ const BRAND_CONFIGS = {
   '+19803032854': {
     brand: 'Sevyn',
     name: 'O1DMatch Sales Training',
-    agent_name: 'Sevyn',
+    agent_name: 'Adriana',
     voice_id: VOICE_BELLA,
-    greeting: "Hey! I'm Sevyn — the AI you need to convince. This is a live sales evaluation for O1DMatch. Treat me like a real prospect, give me your best pitch, and I'll give you scored feedback at the end. You'll know the evaluation is over when I say 'Alright, time's up — let me give you your score.' Let's see what you got.",
+    greeting: "Hi, this is Adriana, your O1DMatch sales-training agent. Before we start — can I get your name, and can you confirm you're here to practice selling O1DMatch?",
     get prompt() { return loadPrompt('+19803032854'); }
   }
 };
