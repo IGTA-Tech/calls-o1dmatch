@@ -49,7 +49,7 @@ const BRAND_CONFIGS = {
     name: 'O1dMatch',
     agent_name: 'Adriana',
     voice_id: VOICE_RACHEL,
-    greeting: "Thanks for calling O1dMatch! I'm Adriana. Are you looking to check your O-1 visa eligibility?",
+    greeting: "Thanks for calling O1dMatch! I'm Adriana — want me to show you how the platform works and help you get started?",
     get prompt() { return loadPrompt('+15617944621'); }
   },
   '+19803032854': {
