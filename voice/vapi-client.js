@@ -59,6 +59,26 @@ const BRAND_CONFIGS = {
     voice_id: VOICE_BELLA,
     temperature: 0.4, // lower = stays in character better; the state-machine prompt is strict
     greeting: "Hi, this is Adriana, your O1DMatch sales-training agent. Before we start — can I get your name, and can you confirm you're here to practice selling O1DMatch?",
+    // Sales-training summary needs the scoring detail or the sheet is useless.
+    // Capture: trainee identity, scenario, scores, total, biggest fix, win.
+    summaryPrompt: [
+      'This was a sales-training role-play. Write a structured summary (8-12 lines, plain text — no markdown) of what happened, formatted exactly like this:',
+      '',
+      'Trainee: <name>',
+      'Scenario: <Talent Agency | U.S. Employer | Immigration Attorney>',
+      'Direction: <Cold Call | Inbound>',
+      'Opening: X/10 — <one-sentence reason citing what they said>',
+      'Discovery: X/10 — <reason>',
+      'Product Accuracy: X/10 — <reason>',
+      'Objection Handling: X/10 — <reason>',
+      'Closing: X/10 — <reason>',
+      'Total: XX/50 — <pass / not yet>',
+      'Biggest fix: <one specific thing to work on next time>',
+      'Did well: <one specific thing they nailed>',
+      '',
+      'If Adriana did not reach the scoring debrief (call dropped, trainee gave up, or never made it past setup), say so explicitly on the first line and skip the score block.',
+      'Pull the exact numeric scores from what Adriana said in the debrief; do not invent or recompute them.'
+    ].join('\n'),
     get prompt() { return loadPrompt('+19803032854'); }
   }
 };
@@ -144,7 +164,10 @@ function buildAssistantPayload(brandConfig, webhookUrl) {
     maxDurationSeconds: 900,
     backgroundSound: 'office',
     analysisPlan: {
-      summaryPrompt: 'Summarize this call in 2-3 sentences focused on the caller\'s intent and any commitments made.',
+      // Per-brand override falls through to the generic prompt. Sevyn needs
+      // the scoring captured in the summary or the sheet/email lose all value.
+      summaryPrompt: brandConfig.summaryPrompt
+        || 'Summarize this call in 2-3 sentences focused on the caller\'s intent and any commitments made.',
       structuredDataPlan: {
         enabled: true,
         schema: {
