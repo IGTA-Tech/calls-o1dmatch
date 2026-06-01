@@ -1107,6 +1107,54 @@ app.get('/api/calls', requireAuth, async (req, res) => {
   }
 });
 
+// Manual trigger: re-send a summary email for a specific call. Useful when
+// Resend env vars were missing or the original send failed. Returns the
+// underlying Resend response or error so we can diagnose.
+//   POST /api/admin/resend-summary { call_id: "..." }
+app.post('/api/admin/resend-summary', requireAuth, async (req, res) => {
+  const callId = (req.body && req.body.call_id) || req.query.call_id;
+  if (!callId) {
+    return res.status(400).json({ ok: false, error: 'call_id required' });
+  }
+  try {
+    const { supabaseRequest } = require('./database/supabase');
+    const rows = await supabaseRequest('calls', 'GET', null, `?call_id=eq.${callId}&select=*`);
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ ok: false, error: 'Call not found in Supabase' });
+    }
+    const c = rows[0];
+
+    const envCheck = {
+      RESEND_API_KEY: !!process.env.RESEND_API_KEY,
+      CALL_SUMMARY_EMAIL: process.env.CALL_SUMMARY_EMAIL || null,
+      CALL_SUMMARY_FROM: process.env.CALL_SUMMARY_FROM || null
+    };
+    if (!envCheck.RESEND_API_KEY) {
+      return res.status(500).json({ ok: false, error: 'RESEND_API_KEY not set', envCheck });
+    }
+
+    const { sendCallSummary } = require('./email/call-summary');
+    const result = await sendCallSummary({
+      brand: c.brand,
+      callerName: c.caller_name,
+      callerPhone: c.caller_phone,
+      callerEmail: c.caller_email,
+      callerType: c.caller_type,
+      topic: c.inquiry_topic,
+      summary: c.summary,
+      transcript: c.transcript,
+      durationMin: c.call_duration_min,
+      recordingUrl: c.recording_url,
+      timestamp: c.timestamp,
+      followUp: c.follow_up_needed,
+      callId: c.call_id
+    });
+    res.json({ ok: true, envCheck, result });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message, stack: err.stack });
+  }
+});
+
 // Get leads
 app.get('/api/leads', requireAuth, async (req, res) => {
   try {
