@@ -57,6 +57,7 @@ const BRAND_CONFIGS = {
     name: 'O1DMatch Sales Training',
     agent_name: 'Adriana',
     voice_id: VOICE_BELLA,
+    temperature: 0.4, // lower = stays in character better; the state-machine prompt is strict
     greeting: "Hi, this is Adriana, your O1DMatch sales-training agent. Before we start — can I get your name, and can you confirm you're here to practice selling O1DMatch?",
     get prompt() { return loadPrompt('+19803032854'); }
   }
@@ -116,7 +117,9 @@ function buildAssistantPayload(brandConfig, webhookUrl) {
     model: {
       provider: 'openai',
       model: 'gpt-4o-mini',
-      temperature: 0.7,
+      // Role-play agents (Sevyn) need lower temperature to hold character;
+      // inbound info agents (O1dMatch) can stay warmer.
+      temperature: typeof brandConfig.temperature === 'number' ? brandConfig.temperature : 0.7,
       messages: [{ role: 'system', content: brandConfig.prompt }]
     },
     voice: {
