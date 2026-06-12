@@ -16,61 +16,6 @@ const { sendFollowupSMS } = require('../sms/followup');
 const { sendCallSummary } = require('../email/call-summary');
 const { getBrandConfig, BRAND_CONFIGS } = require('./vapi-client');
 
-// Blocked caller list, backed by Supabase table `blocked_numbers`. Cached in
-// memory for 30s so we don't hammer the DB on every inbound call. Checked on
-// Vapi's `assistant-request` event so the call is rejected BEFORE Vapi
-// connects audio — no call record, no log, no email.
-const BLOCK_CACHE_TTL_MS = 30 * 1000;
-let _blockCache = { numbers: new Set(), expiresAt: 0 };
-async function getBlockedNumbers() {
-  if (Date.now() < _blockCache.expiresAt) return _blockCache.numbers;
-  try {
-    const rows = await supabaseRequest('blocked_numbers', 'GET', null, '?select=phone');
-    const numbers = new Set((rows || []).map(r => r.phone));
-    _blockCache = { numbers, expiresAt: Date.now() + BLOCK_CACHE_TTL_MS };
-    return numbers;
-  } catch (err) {
-    console.error('   ⚠️ Could not load blocked_numbers from Supabase:', err.message);
-    return _blockCache.numbers;
-  }
-}
-function invalidateBlockCache() { _blockCache.expiresAt = 0; }
-
-// Static phone → assistantId map for `assistant-request` routing. Env-var
-// based so it survives Vapi dashboard changes that clear the static
-// assistantId from the phone-number resource. Falls back to a dynamic Vapi
-// API lookup if env vars are unset.
-const STATIC_PHONE_TO_ASSISTANT = {
-  '+15617944621': process.env.VAPI_ASSISTANT_O1DMATCH,
-  '+19803032854': process.env.VAPI_ASSISTANT_SEVYN
-};
-
-let _phoneToAssistantDynamic = null;
-async function getDynamicPhoneToAssistantMap() {
-  if (_phoneToAssistantDynamic) return _phoneToAssistantDynamic;
-  _phoneToAssistantDynamic = {};
-  try {
-    const res = await fetch('https://api.vapi.ai/phone-number', {
-      headers: { Authorization: `Bearer ${process.env.VAPI_API_KEY}` }
-    });
-    const numbers = await res.json();
-    for (const p of numbers || []) {
-      if (p.number && p.assistantId) _phoneToAssistantDynamic[p.number] = p.assistantId;
-    }
-    console.log(`   🗺️  Built phone→assistant map (${Object.keys(_phoneToAssistantDynamic).length} entries)`);
-  } catch (err) {
-    console.error('   ⚠️ Could not build phone→assistant map:', err.message);
-  }
-  return _phoneToAssistantDynamic;
-}
-
-async function lookupAssistantIdForPhone(phone) {
-  if (!phone) return null;
-  if (STATIC_PHONE_TO_ASSISTANT[phone]) return STATIC_PHONE_TO_ASSISTANT[phone];
-  const dyn = await getDynamicPhoneToAssistantMap();
-  return dyn[phone] || null;
-}
-
 // assistantId -> brand phone. Built once on first webhook by querying Vapi.
 // Vapi always sends assistantId but may omit phoneNumber on some events, so
 // this is our reliable brand lookup.
@@ -125,13 +70,6 @@ async function handleVapiWebhook(req, res) {
 
   console.log(`\n📞 Vapi Event: ${type} (call=${message.call?.id})`);
 
-  // `assistant-request` fires before the call connects. Vapi waits for OUR
-  // response to decide which assistant to use — or whether to hang up.
-  // Must respond synchronously with { assistantId } or { error }.
-  if (type === 'assistant-request') {
-    return await handleAssistantRequest(message, res);
-  }
-
   // Respond to Vapi IMMEDIATELY — their webhook delivery times out around 30s,
   // and end-of-call-report does Sheets + Email + Supabase work that can take
   // longer. Process the work asynchronously so we never get cut off mid-write.
@@ -165,29 +103,6 @@ async function handleVapiWebhook(req, res) {
       console.error(`   ❌ Vapi webhook error (async):`, err.stack || err.message);
     }
   })();
-}
-
-async function handleAssistantRequest(message, res) {
-  const call = message.call || {};
-  const callerNumber = call.customer?.number || null;
-  const brandPhone = call.phoneNumber?.number || null;
-
-  console.log(`   📞 assistant-request: caller=${callerNumber} → brand=${brandPhone}`);
-
-  const blocked = await getBlockedNumbers();
-  if (callerNumber && blocked.has(callerNumber)) {
-    console.log(`   🚫 BLOCKED caller ${callerNumber} — refusing call`);
-    return res.json({ error: 'This number is not authorized to call.' });
-  }
-
-  const assistantId = await lookupAssistantIdForPhone(brandPhone);
-  if (!assistantId) {
-    console.error(`   ❌ No assistantId resolved for brand phone ${brandPhone} — set VAPI_ASSISTANT_<BRAND> env var`);
-    return res.json({ error: 'Call could not be routed. Please try again later.' });
-  }
-
-  console.log(`   ✅ Routing ${brandPhone} → assistant ${assistantId}`);
-  return res.json({ assistantId });
 }
 
 async function handleCallEnded(message) {
@@ -407,7 +322,5 @@ async function handleEndOfCallReport(message, opts = {}) {
 module.exports = {
   handleVapiWebhook,
   handleCallEnded,
-  handleEndOfCallReport,
-  getBlockedNumbers,
-  invalidateBlockCache
+  handleEndOfCallReport
 };
