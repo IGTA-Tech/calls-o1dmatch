@@ -656,6 +656,65 @@ if (voice.handleVapiWebhook) {
 }
 
 // ============================================
+// BLOCKED NUMBERS — admin API (data-driven blocklist)
+// ============================================
+// List, add, and remove blocked callers. Backed by Supabase table
+// `blocked_numbers`. Reads are cached for 30s in the webhook module;
+// writes here invalidate the cache so changes take effect immediately.
+
+function normalizeBlockedPhone(raw) {
+  if (!raw) return null;
+  const digits = String(raw).replace(/[^\d+]/g, '');
+  if (!digits) return null;
+  return digits.startsWith('+') ? digits : '+' + digits;
+}
+
+app.get('/api/admin/blocked-numbers', requireAuth, async (req, res) => {
+  try {
+    const { supabaseRequest } = require('./database/supabase');
+    const rows = await supabaseRequest('blocked_numbers', 'GET', null, '?order=blocked_at.desc');
+    res.json({ ok: true, blocked: rows || [] });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/blocked-numbers', requireAuth, async (req, res) => {
+  const phone = normalizeBlockedPhone(req.body?.phone);
+  const reason = req.body?.reason || null;
+  if (!phone) return res.status(400).json({ ok: false, error: 'phone required (E.164 format, e.g. +13105551234)' });
+  try {
+    const { supabaseRequest } = require('./database/supabase');
+    const existing = await supabaseRequest('blocked_numbers', 'GET', null, `?phone=eq.${encodeURIComponent(phone)}`);
+    if (existing && existing.length > 0) {
+      return res.json({ ok: true, already: true, phone });
+    }
+    await supabaseRequest('blocked_numbers', 'POST', {
+      phone,
+      reason,
+      blocked_by: req.user?.email || req.user?.id || 'admin'
+    });
+    if (voice.invalidateBlockCache) voice.invalidateBlockCache();
+    res.json({ ok: true, added: phone });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.delete('/api/admin/blocked-numbers/:phone', requireAuth, async (req, res) => {
+  const phone = normalizeBlockedPhone(req.params.phone);
+  if (!phone) return res.status(400).json({ ok: false, error: 'invalid phone' });
+  try {
+    const { supabaseRequest } = require('./database/supabase');
+    await supabaseRequest('blocked_numbers', 'DELETE', null, `?phone=eq.${encodeURIComponent(phone)}`);
+    if (voice.invalidateBlockCache) voice.invalidateBlockCache();
+    res.json({ ok: true, removed: phone });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ============================================
 // HUMAN CLICK-TO-CALL (Twilio Voice SDK / WebRTC)
 // ============================================
 
