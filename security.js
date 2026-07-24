@@ -32,7 +32,7 @@ const securityHeaders = helmet({
         "wss://*.twilio.com",
         "https://*.twilio.com"
       ],
-      mediaSrc: ["'self'", "https://*.twilio.com", "https://*.vapi.ai", "https://storage.vapi.ai"],
+      mediaSrc: ["'self'", "https://*.twilio.com", "https://*.vapi.ai", "https://storage.vapi.ai", "https://*.r2.cloudflarestorage.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: []
