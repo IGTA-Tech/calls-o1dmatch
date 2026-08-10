@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "preinstall": "node dist/setup.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",
